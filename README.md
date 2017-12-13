@@ -16,3 +16,17 @@
 * Ambient occlusion
 * Chunks
 
+# Roadmap
+
+**Done**
+* Frustrum, and block face culling
+* Ambient occlusion
+* Chunks
+
+**Todo**
+* Define list of TChunk types and their textures externally
+* Skybox
+* Improve performance: one sided triangles?
+* Environment Lighting
+* VAO creation in Thread(s)?
+
