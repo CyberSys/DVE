@@ -8,6 +8,7 @@
 
 **Overview**
 * Simple; one unit for OpenGL, one unit for Chunk manager and one unit for the Chunk template
+* Barebone starting point for OpenGL Voxel engine for Delphi
 
 **Features**
 * Frustrum culling
