@@ -1,13 +1,10 @@
 ![servicesbanner](http://yonaka.no/images/DVELogo.png)
 
-# DVE
-Delphi voxel engine
-
-'''Delphi Voxel Engine'''
+# DVE - Delphi voxel engine
 
 <u>Uses</u>
-* OpenGL 3.1+ through [https://github.com/SaschaWillems/dglOpenGL dglOpenGL]
-* [https://github.com/neslib/FastMath Neslib.FastMath]
+* OpenGL 3.1+ through [dglOpenGL] https://github.com/SaschaWillems/dglOpenGL
+* [Neslib.FastMath] https://github.com/neslib/FastMath
 <u>Overview</u>
 * Simple, only 3 units. (Plus dependencies)
 * As prototype template
