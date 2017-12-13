@@ -1,6 +1,6 @@
 ![servicesbanner](http://yonaka.no/images/DVELogo.png)
 
-# DVE - Delphi voxel engine
+# DVE - Delphi Voxel Engine
 
 **Uses**
 * OpenGL 3.1+ through [dglOpenGL](https://github.com/SaschaWillems/dglOpenGL)
