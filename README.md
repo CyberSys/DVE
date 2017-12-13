@@ -9,7 +9,7 @@
 **Overview**
 * Simple; one unit for OpenGL, one unit for Chunk manager and one unit for the Chunk template
 * Barebone starting point for OpenGL Voxel engine for Delphi
-* Run on TPanel in VCL for development. Easily turn into non VCL app.
+* Run on TPanel in VCL during development. Easily deploy as non VCL app.
 
 **Features**
 * Frustrum culling
