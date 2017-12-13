@@ -29,6 +29,10 @@
 * Improve performance: one sided triangles?
 * Environment Lighting
 * VAO creation in Thread(s)?
+* Picking
+* Block highlight
+* Grids
+* GUI or feedback
 
 **Bugs**
 * Noise is continuous but blocks are not near X-axis
