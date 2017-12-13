@@ -1,2 +1,2 @@
 # DVE
-Deslphi voxel engine
+Delphi voxel engine
