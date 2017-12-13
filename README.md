@@ -30,3 +30,5 @@
 * Environment Lighting
 * VAO creation in Thread(s)?
 
+**Bugs**
+* Noise is continuous but blocks are not near X-axis
