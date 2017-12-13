@@ -7,8 +7,7 @@
 * [Neslib.FastMath](https://github.com/neslib/FastMath)
 
 **Overview**
-* Simple, only 3 units. (Plus dependencies)
-* As prototype template
+* Simple; one unit for OpenGL, one unit for Chunk manager and one unit for the Chunk template
 
 **Features**
 * Frustrum culling
