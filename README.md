@@ -5,6 +5,7 @@
 **Uses**
 * OpenGL 3.1+ through [dglOpenGL](https://github.com/SaschaWillems/dglOpenGL)
 * [Neslib.FastMath](https://github.com/neslib/FastMath)
+* Temporary?: nothings-stb through [DelphiStb](https://github.com/neslib/DelphiStb)
 
 **Overview**
 * Simple; one unit for OpenGL, one unit for Chunk manager and one unit for the Chunk template
