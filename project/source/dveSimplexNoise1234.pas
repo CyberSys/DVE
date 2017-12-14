@@ -1,7 +1,7 @@
 // Translated from C++ file that is under MIT license, https://opensource.org/licenses/MIT
 // Therefore this file is as well under the MIT
 
-unit dveUnitSimplexNoise1234;
+unit dveSimplexNoise1234;
 
 
 interface

@@ -10,7 +10,7 @@ uses
   dveOpenGLHandler in 'Source\dveOpenGLHandler.pas',
   dveChunk in 'Source\dveChunk.pas',
   dveChunkManager in 'Source\dveChunkManager.pas',
-  dveUnitSimplexNoise1234 in 'Source\dveUnitSimplexNoise1234.pas',
+  dveSimplexNoise1234 in 'source\dveSimplexNoise1234.pas',
   Neslib.Stb.RectPack in 'External\Neslib-Stb\Neslib.Stb.RectPack.pas',
   Neslib.FastMath in 'External\FastMath\Neslib.FastMath.pas';
 

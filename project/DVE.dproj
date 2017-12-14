@@ -148,7 +148,7 @@
         <DCCReference Include="Source\dveOpenGLHandler.pas"/>
         <DCCReference Include="Source\dveChunk.pas"/>
         <DCCReference Include="Source\dveChunkManager.pas"/>
-        <DCCReference Include="Source\dveUnitSimplexNoise1234.pas"/>
+        <DCCReference Include="source\dveSimplexNoise1234.pas"/>
         <DCCReference Include="External\Neslib-Stb\Neslib.Stb.RectPack.pas"/>
         <DCCReference Include="External\FastMath\Neslib.FastMath.pas"/>
         <BuildConfiguration Include="Release">
@@ -177,14 +177,20 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
+                <DeployFile LocalName="Game\DVE.rsm" Configuration="Debug" Class="DebugSymbols">
+                    <Platform Name="Win64">
+                        <RemoteName>DVE.rsm</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="Game\DVE.exe" Configuration="Release" Class="ProjectOutput">
                     <Platform Name="Win64">
                         <RemoteName>DVE.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="Win32\Debug\DVE.exe" Configuration="Debug" Class="ProjectOutput">
-                    <Platform Name="Win32">
+                <DeployFile LocalName="Game\DVE.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win64">
                         <RemoteName>DVE.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
@@ -195,39 +201,18 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="Game\DVE.rsm" Configuration="Debug" Class="DebugSymbols">
-                    <Platform Name="Win64">
-                        <RemoteName>DVE.rsm</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="Game\DVE.exe" Configuration="Debug" Class="ProjectOutput">
-                    <Platform Name="Win64">
+                <DeployFile LocalName="Win32\Debug\DVE.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
                         <RemoteName>DVE.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployClass Name="DependencyModule">
-                    <Platform Name="Win32">
-                        <Operation>0</Operation>
-                        <Extensions>.dll;.bpl</Extensions>
-                    </Platform>
+                <DeployClass Name="ProjectiOSDeviceResourceRules">
                     <Platform Name="iOSDevice64">
                         <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                    <Platform Name="OSX32">
-                        <RemoteDir>Contents\MacOS</RemoteDir>
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
                     </Platform>
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                    <Platform Name="iOSSimulator">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
                     </Platform>
                 </DeployClass>
                 <DeployClass Name="ProjectOSXResource">
@@ -606,12 +591,27 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <DeployClass Name="ProjectiOSDeviceResourceRules">
+                <DeployClass Name="DependencyModule">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.dll;.bpl</Extensions>
+                    </Platform>
                     <Platform Name="iOSDevice64">
                         <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
                     </Platform>
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
                     </Platform>
                 </DeployClass>
                 <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
