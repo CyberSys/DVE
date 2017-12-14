@@ -125,7 +125,7 @@ implementation
 
 uses
 // Project
-  dveUnitSimplexNoise1234,
+  dveSimplexNoise1234,
 
 // External
 
