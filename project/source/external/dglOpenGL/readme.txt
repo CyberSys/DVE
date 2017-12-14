@@ -1,1 +1,1 @@
-asd
+dglOpenGL.pas here
