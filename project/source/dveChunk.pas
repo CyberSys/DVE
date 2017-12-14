@@ -79,11 +79,8 @@ TChunk = class
     procedure SetUpdateVertices(const Value: Boolean);                // Setter
 
   public
-//    fSeedStr: String;                                                 // Chunk ID string
     aSkipVertexArray: Boolean;
-
     MapData: array of TBlock;
-
     aVertexArray: TVertexArray;                                       // Vertex data for this chunk
 
     property IDString: String read aID;                               // ID String to hash
@@ -91,18 +88,24 @@ TChunk = class
     property YWorld: Int16 read aYWorld;                              // Chunk world coordinates
     property ZWorld: Int16 read aZWorld;                              // Chunk world coordinates
     property PosWorld: TVector3 read GetPosWorld;                     //
-    property CreateVertices: Boolean read GetUpdateVertices write SetUpdateVertices;  //
+    property CreateVertices: Boolean                                  //
+      read GetUpdateVertices write SetUpdateVertices;
     property SizeEdge: Cardinal read aSizeEdge;                       //
     property SizeArray: Cardinal read aSizeArray2;                    //
     property InFrustrum: boolean read aInFrustrum write aInFrustrum;  //
-    property SkipVertexArray: Boolean read aSkipVertexArray write aSkipVertexArray;
+    property SkipVertexArray: Boolean                                 //
+      read aSkipVertexArray write aSkipVertexArray;
 
-    constructor Create(const aSize: Cardinal; const Xworld, Yworld, Zworld: Int16);   //
+    constructor Create(                                               //
+      const aSize: Cardinal; const Xworld, Yworld, Zworld: Int16);
     destructor Destroy; override;                                     //
     function IndexToBlockLocalCoords(const I: Integer): TVector3;     // Internal coordinates of a block
     function IndexToBlockWorldCoords(const I: Integer): TVector3;     // World coordinates of a block
-    function GetBlock(const aIndex: Integer; const aDir: TDirection): TBlock; //
-    function AmbientOcclusion2(const aIndex: Cardinal; const aD1, aD2, aD3: TDirection): Single;  //
+    function GetBlock(                                                //
+      const aIndex: Cardinal; const aDir: TDirection): TBlock;        //
+    function AmbientOcclusion2(                                       //
+      const aIndex: Cardinal;
+      const aD1, aD2, aD3: TDirection): Single;
 
 end;
 {$ENDREGION}
@@ -207,7 +210,7 @@ begin
 end;
 
 
-function TChunk.GetBlock(const aIndex: Integer; const aDir: TDirection): TBlock;
+function TChunk.GetBlock(const aIndex: Cardinal; const aDir: TDirection): TBlock;
 begin
   case aDir of
     d0:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-aSizeEdge2-1];
@@ -276,7 +279,6 @@ var
   AnySolids: Boolean;
   AnyAir: Boolean;
   C: TVector3;
-  N: Single;
 begin
   AnySolids := false;
   AnyAir := false;
@@ -333,3 +335,4 @@ end;
 
 
 end.
+
