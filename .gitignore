@@ -24,3 +24,4 @@ project/External/dglOpenGL/LICENSE
 project/External/dglOpenGL/README.md
 *.stat
 *.stat
+*.identcache

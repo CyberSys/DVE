@@ -70,127 +70,31 @@ object FormTest: TFormTest
         TabOrder = 0
       end
       object ButtonChunkManager: TButton
-        Left = 23
-        Top = 43
+        Left = 592
+        Top = 16
         Width = 98
         Height = 25
-        Caption = 'Setup from CM'
+        Caption = 'Start'
         TabOrder = 1
         OnClick = ButtonChunkManagerClick
       end
       object ButtonListListVicinity: TButton
-        Left = 719
+        Left = 696
         Top = 16
-        Width = 75
+        Width = 98
         Height = 25
         Anchors = [akTop, akRight]
         Caption = 'List Vicinity'
         TabOrder = 2
         OnClick = ButtonListListVicinityClick
       end
-      object ButtonCMUpdate: TButton
-        Left = 719
-        Top = 47
-        Width = 75
-        Height = 25
-        Anchors = [akTop, akRight]
-        Caption = 'CM Update'
-        TabOrder = 3
-        OnClick = ButtonCMUpdateClick
-      end
-      object ButtonToggleMemo: TButton
-        Left = 719
-        Top = 78
-        Width = 75
-        Height = 25
-        Anchors = [akTop, akRight]
-        Caption = 'Toggle Memo'
-        TabOrder = 4
-        OnClick = ButtonToggleMemoClick
-      end
-      object Button1: TButton
-        Left = 638
-        Top = 16
-        Width = 75
-        Height = 25
-        Anchors = [akTop, akRight]
-        Caption = 'Set cull'
-        TabOrder = 5
-        OnClick = Button1Click
-      end
-      object StringGrid1: TStringGrid
-        Left = 288
-        Top = 80
-        Width = 209
-        Height = 89
-        ColCount = 3
-        DragCursor = crDefault
-        FixedCols = 0
-        RowCount = 3
-        FixedRows = 0
-        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goEditing]
-        TabOrder = 6
-        ColWidths = (
-          64
-          64
-          64)
-        RowHeights = (
-          24
-          24
-          24)
-      end
-      object AlphaTrackBar: TTrackBar
-        Left = 519
-        Top = 102
-        Width = 169
-        Height = 24
-        Max = 255
-        PageSize = 25
-        Position = 160
-        PositionToolTip = ptTop
-        TabOrder = 7
-        TickStyle = tsNone
-      end
-      object TextTrackBar: TTrackBar
-        Left = 519
-        Top = 132
-        Width = 169
-        Height = 24
-        Max = 255
-        PageSize = 25
-        Position = 255
-        PositionToolTip = ptTop
-        TabOrder = 8
-        TickStyle = tsNone
-      end
-      object CompositionAlphaTrackBar: TTrackBar
-        Left = 519
-        Top = 162
-        Width = 169
-        Height = 24
-        Max = 255
-        PageSize = 25
-        Position = 255
-        PositionToolTip = ptTop
-        TabOrder = 9
-        TickStyle = tsNone
-      end
       object CheckBoxDebug: TCheckBox
-        Left = 232
-        Top = 24
+        Left = 104
+        Top = 20
         Width = 97
         Height = 17
         Caption = 'Debug'
-        TabOrder = 10
-      end
-      object Button2: TButton
-        Left = 23
-        Top = 88
-        Width = 75
-        Height = 25
-        Caption = 'Button2'
-        TabOrder = 11
-        OnClick = Button2Click
+        TabOrder = 3
       end
     end
   end
@@ -215,6 +119,9 @@ object FormTest: TFormTest
         Font.Height = -11
         Font.Name = 'Courier New'
         Font.Style = []
+        Lines.Strings = (
+          'Move: asdwrf'
+          'Turn:Mouse+Left click')
         ParentFont = False
         ScrollBars = ssVertical
         TabOrder = 0

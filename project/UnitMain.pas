@@ -27,15 +27,7 @@ type
     Memo1: TMemo;
     ButtonChunkManager: TButton;
     ButtonListListVicinity: TButton;
-    ButtonCMUpdate: TButton;
-    ButtonToggleMemo: TButton;
-    Button1: TButton;
-    StringGrid1: TStringGrid;
-    AlphaTrackBar: TTrackBar;
-    TextTrackBar: TTrackBar;
-    CompositionAlphaTrackBar: TTrackBar;
     CheckBoxDebug: TCheckBox;
-    Button2: TButton;
     procedure ButtonClearLogClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -48,10 +40,7 @@ type
     procedure Panel1MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
     procedure ButtonChunkManagerClick(Sender: TObject);
     procedure ButtonListListVicinityClick(Sender: TObject);
-    procedure ButtonCMUpdateClick(Sender: TObject);
     procedure ButtonToggleMemoClick(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -90,32 +79,6 @@ uses
 {$R *.dfm}
 
 
-procedure TFormTest.Button2Click(Sender: TObject);
-var
-  n: Integer;
-  C: TChunk;
-  I: Integer;
-  T: TVector3;
-begin
-  n := 3;
-  C := TChunk.Create(3, 0,0,0);
-
-  Inc(n, 2);
-  for I := 0 to n*n*n-1 do
-    begin
-      T := C.IndexToBlockLocalCoords(I);
-      Memo1.Lines.Add(I.ToString + ': ' +T.X.ToString+'/'+T.Y.ToString+'/'+T.Z.ToString)
-    end;
-
-  for I := 0 to n*n*n-1 do
-    begin
-      T := C.IndexToBlockWorldCoords(I);
-      Memo1.Lines.Add(I.ToString + ': ' +T.X.ToString+'/'+T.Y.ToString+'/'+T.Z.ToString)
-    end;
-
-  C.Free;
-end;
-
 
 procedure TFormTest.ButtonChunkManagerClick(Sender: TObject);
 begin
@@ -123,22 +86,7 @@ begin
 end;
 
 
-procedure TFormTest.Button1Click(Sender: TObject);
-var
-  Plane: Tmatrix3;
-begin
-  Plane := CM.UpdateChunkFrustrums(OGLH.Camera);
 
-  StringGrid1.Rows[0].Strings[0] := FormatFloat('0.0',Plane.Rows[0].X);
-  StringGrid1.Rows[0].Strings[1] := FormatFloat('0.0',Plane.Rows[0].Y);
-  StringGrid1.Rows[0].Strings[2] := FormatFloat('0.0',Plane.Rows[0].Z);
-  StringGrid1.Rows[1].Strings[0] := FormatFloat('0.0',Plane.Rows[1].X);
-  StringGrid1.Rows[1].Strings[1] := FormatFloat('0.0',Plane.Rows[1].Y);
-  StringGrid1.Rows[1].Strings[2] := FormatFloat('0.0',Plane.Rows[1].Z);
-  StringGrid1.Rows[2].Strings[0] := FormatFloat('0.0',Plane.Rows[2].X);
-  StringGrid1.Rows[2].Strings[1] := FormatFloat('0.0',Plane.Rows[2].Y);
-  StringGrid1.Rows[2].Strings[2] := FormatFloat('0.0',Plane.Rows[2].Z);
-end;
 
 
 procedure TFormTest.ButtonClearLogClick(Sender: TObject);
@@ -147,12 +95,7 @@ begin
 end;
 
 
-procedure TFormTest.ButtonCMUpdateClick(Sender: TObject);
-begin
-  CM.UpdateOnFrame(OGLH.Camera);
-  SetupVertex2;
-  OGLH.Render_old;
-end;
+
 
 
 procedure TFormTest.ButtonFragCompileClick(Sender: TObject);
@@ -214,21 +157,7 @@ begin
   PageControl1.ActivePageIndex := 0;
   FullScreen := false;
 
-  // GUI
 
-
-
-  StringGrid1.Rows[0].Strings[0] := '0';
-  StringGrid1.Rows[0].Strings[1] := '0';
-  StringGrid1.Rows[0].Strings[2] := '0';
-
-  StringGrid1.Rows[1].Strings[0] := '0';
-  StringGrid1.Rows[1].Strings[1] := '0';
-  StringGrid1.Rows[1].Strings[2] := '-1';
-
-  StringGrid1.Rows[2].Strings[0] := '0';
-  StringGrid1.Rows[2].Strings[1] := '1';
-  StringGrid1.Rows[2].Strings[2] := '0';
 
 
 
@@ -427,7 +356,7 @@ begin
     CM.DistanceView := 0;
     CM.DistanceLoad := 10;
     CM.WorldSeed    := 'Jaajaa';
-    CM.SizeEdge     := 30;        // Default 11;
+    CM.SizeEdge     := 16;        // Default 11;
     CM.MakeOutliers;
 
   // Camera location
