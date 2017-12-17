@@ -97,11 +97,11 @@ object FormTest: TFormTest
         TabOrder = 3
       end
       object Button1: TButton
-        Left = 600
+        Left = 592
         Top = 80
-        Width = 194
+        Width = 129
         Height = 25
-        Caption = 'Create world data'
+        Caption = 'Test fastmath floor'
         TabOrder = 4
         OnClick = Button1Click
       end

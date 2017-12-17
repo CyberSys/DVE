@@ -25,7 +25,8 @@ const
 //  A vector-valued noise over 3D accesses it 96 times, and a
 //  float-valued 4D noise 64 times. We want this to fit in the cache!
 
-perm: array[0..511] of byte = (151,160,137,91,90,15,
+perm: array[0..511] of byte = (
+  151,160,137,91,90,15,
   131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
   190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
   88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
@@ -210,27 +211,27 @@ end;
 //float snoise2(float x, float y)
 function snoise2(x, y: single): single;
 const
-  F2 = 0.366025403;       // #define F2 0.366025403 // F2 = 0.5*(sqrt(3.0)-1.0)
-  G2 = 0.211324865;       // #define G2 0.211324865 // G2 = (3.0-Math.sqrt(3.0))/6.0
+  F2 = 0.3660254037844386;      // F2 = 0.5*(sqrt(3.0)-1.0)
+  G2 = 0.2113248654051871;      // G2 = (3.0-Math.sqrt(3.0))/6.0
 var
-  n0, n1, n2: single;     // float n0, n1, n2; // Noise contributions from the three corners
+  n0, n1, n2: single;           // float n0, n1, n2; // Noise contributions from the three corners
   s, xs, ys: single;
   i, j, ii, jj: integer;
-  XX0, YY0, x0, y0: single;   // Capital X0 and Y0 XX0 and YY0 in pascal
+  XX0, YY0, x0, y0: single;     // Capital X0 and Y0 XX0 and YY0 in pascal
   t, x1, y1, x2, y2, t0, t1, t2: single;
-  i1, j1: integer;            //  int i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
+  i1, j1: integer;              //  int i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
 begin
   // Skew the input space to determine which simplex cell we're in
-  s := (x+y)*F2;          // float s = (x+y)*F2; // Hairy factor for 2D
-  xs := x+s;              //  float xs = x + s;
-  ys := y+s;              //  float ys = y + s;
-  i := floor(xs);         //  int i = FASTFLOOR(xs);
-  j := floor(ys);         //  int j = FASTFLOOR(ys);
-  t := (i+j)*G2;          //  float t = (float)(i+j)*G2;
-  XX0 := i-t;             //  float X0 = i-t; // Unskew the cell origin back to (x,y) space
-  YY0 := j-t;             //  float Y0 = j-t;
-  x0 := x-XX0;            //  float x0 = x-X0; // The x,y distances from the cell origin
-  y0 := y-YY0;            //  float y0 = y-Y0;
+  s := (x+y)*F2;                //  float s = (x+y)*F2; // Hairy factor for 2D
+  xs := x+s;                    //  float xs = x + s;
+  ys := y+s;                    //  float ys = y + s;
+  i := floor(xs);               //  int i = FASTFLOOR(xs);
+  j := floor(ys);               //  int j = FASTFLOOR(ys);
+  t := (i+j)*G2;                //  float t = (float)(i+j)*G2;
+  XX0 := i-t;                   //  float X0 = i-t; // Unskew the cell origin back to (x,y) space
+  YY0 := j-t;                   //  float Y0 = j-t;
+  x0 := x-XX0;                  //  float x0 = x-X0; // The x,y distances from the cell origin
+  y0 := y-YY0;                  //  float y0 = y-Y0;
 
   // For the 2D case, the simplex shape is an equilateral triangle.
   // Determine which simplex we are in.
@@ -276,7 +277,7 @@ begin
 
   // Add contributions from each corner to get the final noise value.
   // The result is scaled to return values in the interval [-1,1].
-  result := 40.0 * (n0+n1+n2);  //  return 40.0f * (n0 + n1 + n2); // TODO: The scale factor is preliminary!
+  result := 45.264 * (n0+n1+n2);  //  return 40.0f * (n0 + n1 + n2); // TODO: The scale factor is preliminary!
 end;
 
 
@@ -396,7 +397,7 @@ begin
   // Add contributions from each corner to get the final noise value.
   // The result is scaled to stay just inside [-1,1]
   // return 32.0f * (n0 + n1 + n2 + n3); // TODO: The scale factor is preliminary!
-  result := 32.0*(n0+n1+n2+n3);
+  result := 32.698 * (n0+n1+n2+n3);
 
 end;
 

@@ -76,6 +76,9 @@ var
 implementation
 
 uses
+  // Temp
+//  dveSimplexNoise1234,
+
   // Project
   dveWorld,
 
@@ -91,40 +94,23 @@ uses
 
 
 
+
+
 procedure TFormTest.Button1Click(Sender: TObject);
 var
-//  W: TWorld;
-  S: String;
-  X,Y,Z: Cardinal;
-  Ch, Cl: Cardinal;
+  I: Integer;
+  S: Single;
+  T: TStopWatch;
 begin
-  Ch := 3;
-  Cl := 3;
+  T := TStopWatch.Create;
+  T.Start;
 
-//  W := TWorld.Create(Ch,Cl);
-
-//  W.CreateData;
-
-  for Z:= 0 to Ch*Cl-1 do
+  for I := 0 to 1000000 do
     begin
-      Memo1.Lines.Add('');
-      Memo1.Lines.Add(IntToStr(round(Z/(ch*cl/2))));
-      for Y:= 0 to Ch*Cl-1 do
-      begin
-
-        S := '';
-        for X:= 0 to Ch*Cl-1 do
-          begin
-//            S:=S + ansileftstr(IntToStr(W.aData[X + Y*Ch*Cl + Z*Ch*Cl*Ch*Cl])+'                   ', 6);
-          end;
-        Memo1.Lines.Add(S);
-
-      end;
-
+//      S := snoise2(I/100, I*2);
     end;
+  Memo1.Lines.Add('Elapsed:' + T.ElapsedMilliseconds.ToString);
 
-
-//  W.Free;
 end;
 
 procedure TFormTest.ButtonChunkManagerClick(Sender: TObject);
