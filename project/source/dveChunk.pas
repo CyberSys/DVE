@@ -9,7 +9,10 @@ uses
   dveOpenGLHandler,
 
 // External
-  Neslib.FastMath;
+  Neslib.FastMath,
+
+// System
+  System.Classes;
 
 type
 

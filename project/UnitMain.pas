@@ -4,7 +4,7 @@ interface
 
 uses
   dveChunk,
-  dveChunkManager,
+  dveChunkManagerFile,
   Generics.Collections,
   dveOpenGLHandler,
   dglOpenGL,
@@ -28,6 +28,7 @@ type
     ButtonChunkManager: TButton;
     ButtonListListVicinity: TButton;
     CheckBoxDebug: TCheckBox;
+    Button1: TButton;
     procedure ButtonClearLogClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -41,6 +42,7 @@ type
     procedure ButtonChunkManagerClick(Sender: TObject);
     procedure ButtonListListVicinityClick(Sender: TObject);
     procedure ButtonToggleMemoClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -65,7 +67,7 @@ var
   FPSSum: Single;
   Blink: Integer = 0;
   OldBlink: Integer = -1;
-  CM: TChunkManager;
+  CM: TChunkManagerFile;
   LastFrameTime: double;
   CM_Counter: Cardinal = 0;
 
@@ -74,11 +76,56 @@ var
 implementation
 
 uses
+  // Project
+  dveWorld,
+
+  // External
+
+  // System
+  StrUtils,
   System.Diagnostics;
 
 {$R *.dfm}
 
 
+
+
+
+procedure TFormTest.Button1Click(Sender: TObject);
+var
+  W: TWorld;
+  S: String;
+  X,Y,Z: Cardinal;
+  Ch, Cl: Cardinal;
+begin
+  Ch := 3;
+  Cl := 3;
+
+  W := TWorld.Create(Ch,Cl);
+
+  W.CreateData;
+
+  for Z:= 0 to Ch*Cl-1 do
+    begin
+      Memo1.Lines.Add('');
+      Memo1.Lines.Add(IntToStr(round(Z/(ch*cl/2))));
+      for Y:= 0 to Ch*Cl-1 do
+      begin
+
+        S := '';
+        for X:= 0 to Ch*Cl-1 do
+          begin
+            S:=S + ansileftstr(IntToStr(W.aData[X + Y*Ch*Cl + Z*Ch*Cl*Ch*Cl])+'                   ', 6);
+          end;
+        Memo1.Lines.Add(S);
+
+      end;
+
+    end;
+
+
+  W.Free;
+end;
 
 procedure TFormTest.ButtonChunkManagerClick(Sender: TObject);
 begin
@@ -291,7 +338,7 @@ begin
     CM.UpdateChunkFrustrums(OGLH.Camera);
 
   // Update load and unload lists based on location
-    CM.UpdateOnFrame(OGLH.Camera);
+    CM.ManageLists(OGLH.Camera);
 
   // Loop all in loaded list to create VAO if needed
     CM.UpdateVertices(CM.ListLoaded);
@@ -352,9 +399,9 @@ begin
     glInfoToDisk;
 
   // Create chunk list
-    CM := TChunkManager.Create;
+    CM := TChunkManagerFile.Create;
     CM.DistanceView := 0;
-    CM.DistanceLoad := 10;
+    CM.DistanceLoad := 8;
     CM.WorldSeed    := 'Jaajaa';
     CM.SizeEdge     := 16;        // Default 11;
     CM.MakeOutliers;
@@ -416,7 +463,7 @@ begin
   OGLH.VertexLayoutVoxel.Add('TexCoordIn', 3);
   OGLH.VertexLayoutVoxel.Add('lightLevel', 1);
 
-  CM.UpdateOnFrame(OGLH.Camera);
+  CM.ManageLists(OGLH.Camera);
 
   // Loop all chunks
 //  for C in CM.ListLoaded.Values do

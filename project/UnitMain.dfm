@@ -89,12 +89,21 @@ object FormTest: TFormTest
         OnClick = ButtonListListVicinityClick
       end
       object CheckBoxDebug: TCheckBox
-        Left = 104
-        Top = 20
+        Left = 23
+        Top = 43
         Width = 97
         Height = 17
         Caption = 'Debug'
         TabOrder = 3
+      end
+      object Button1: TButton
+        Left = 600
+        Top = 80
+        Width = 194
+        Height = 25
+        Caption = 'Create world data'
+        TabOrder = 4
+        OnClick = Button1Click
       end
     end
   end

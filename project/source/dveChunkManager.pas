@@ -19,7 +19,7 @@ uses
 
 type
   TChunkManager = class
-  private
+  protected
     aSizeEdge: Integer;                                     // Chunk edge size
     aWorldSeed: String;                                     //
     aDistanceView: Integer;                                 // Controls chunk loading to view list, always must be smaller than aDistanceLoad
@@ -45,15 +45,16 @@ type
     var ShaderVoxel: TShader;
     var VertexLayoutForVoxel: TVertexLayout;                // Vertex array layout for voxels
 
-    constructor Create;
-    Destructor Destroy; Override;
+    constructor Create; dynamic;
+    Destructor Destroy; override;
 
-    procedure UpdateOnFrame(const Camera: TCamera);         // Manages lists, run once per frame
+    procedure ManageLists(const Camera: TCamera);           // Manages lists, run once per frame
     procedure UpdateListVicinity(const Camera: TCamera);    // Run once moved enough
     procedure ListLoadChunksProcess(const Steps: Cardinal); // Process load chunk list
     procedure ListUnloadProcess(const Steps: Cardinal);     // Process unload chunk list one step
+
     function ChunkLoadCreate(aID: String): TChunk;          // Load or create chunk. Always returns one, use responsibly
-                                                            // Immediately close by chunks
+      dynamic;                                              // Immediately close by chunks
 
     procedure UpdateVertices(const Chunks: TDictionary<String, TChunk>);
     function UpdateChunkFrustrums(const aCamera: TCamera): TMatrix3;        // Updates chunks to know if they are in frustrum
@@ -80,7 +81,6 @@ implementation
 
 uses
   System.Diagnostics;
-
 
 
 function CoordsFromID(aID: String): TVector3;
@@ -211,18 +211,13 @@ begin
 end;
 
 
-procedure TChunkManager.UpdateOnFrame(const Camera: TCamera);
+procedure TChunkManager.ManageLists(const Camera: TCamera);
 var
   aID: String;
   C: TChunk;
 begin
-  // Load chunks
-//  ListLoadChunksProcess(20);
 
-  // Unload chunks
-//  if ListLoad.Count = 0 then ListUnloadProcess(20);
-
-  // If we have moved >75% of the buffered distance -> Update vicinity list
+  // If we have moved >15% of the buffered distance -> Update vicinity list
   // Load distance is in Chunks. Distance squared*chunk size* 0.75
   if Camera.Position.DistanceSquared(aLastVicinityUpdateLocation) > ((aDistanceLoad)*(aDistanceLoad)*aSizeEdge*0.15) then
     begin
@@ -250,22 +245,6 @@ begin
         end;
     end;
 
-end;
-
-
-function TChunkManager.ChunkLoadCreate(aID: string): TChunk;
-var
-  C: TVector3;
-begin
-  // Check from loaded chunks
-  if ListLoaded.TryGetValue(aID, Result) then exit;
-
-  // Check from disk
-  //Yeah it wasn't on the disk now go away!
-
-  // Create it from thin air
-  C := CoordsFromID(aID);
-  Result := TChunk.Create(aSizeEdge, round(C.X), round(C.Y), round(C.Z));
 end;
 
 
@@ -339,6 +318,22 @@ begin
         break;
     end;
 
+end;
+
+
+function TChunkManager.ChunkLoadCreate(aID: string): TChunk;
+var
+  C: TVector3;
+begin
+  // Check from loaded chunks
+  if ListLoaded.TryGetValue(aID, Result) then exit;
+
+  // Check from disk
+  // Yeah it wasn't on the disk now go away!
+
+  // Create it from thin air
+  C := CoordsFromID(aID);
+  Result := TChunk.Create(aSizeEdge, round(C.X), round(C.Y), round(C.Z));
 end;
 
 
@@ -471,13 +466,7 @@ begin
     begin
       Inc(Total);
 
-      if
-//          (c13.CreateVertices = true) and    // Set false for empty chunks
-//          (c13.VertexArray = nil)
-
-        (c13.CreateVertices = true)
-
-      then
+      if (c13.CreateVertices = true) then
         begin
           FreeAndNil(c13.aVertexArray);
 
@@ -504,11 +493,11 @@ begin
               S3.Stop;
               c13.CreateVertices := false;
               Inc(Created,1);
-            end;
-//          else
-//            c13.CreateVertices := false;
+            end
+          else
+            c13.CreateVertices := false;
         end;
-//      if S1.ElapsedMilliseconds > 15 then break;
+      if S1.ElapsedMilliseconds > 15 then break;
 
     end;
 
