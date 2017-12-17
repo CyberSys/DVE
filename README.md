@@ -40,6 +40,5 @@
 * GUI or feedback
 
 **Bugs**
-* Noise is continuous but blocks are not near X-axis
+~~* Noise not continuous~~
 
-**Something Something**
