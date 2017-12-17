@@ -40,5 +40,5 @@
 * GUI or feedback
 
 **Bugs**
-~~* Noise not continuous~~
+*~~Noise not continuous~~
 
