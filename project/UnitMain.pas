@@ -93,7 +93,7 @@ uses
 
 procedure TFormTest.Button1Click(Sender: TObject);
 var
-  W: TWorld;
+//  W: TWorld;
   S: String;
   X,Y,Z: Cardinal;
   Ch, Cl: Cardinal;
@@ -101,9 +101,9 @@ begin
   Ch := 3;
   Cl := 3;
 
-  W := TWorld.Create(Ch,Cl);
+//  W := TWorld.Create(Ch,Cl);
 
-  W.CreateData;
+//  W.CreateData;
 
   for Z:= 0 to Ch*Cl-1 do
     begin
@@ -115,7 +115,7 @@ begin
         S := '';
         for X:= 0 to Ch*Cl-1 do
           begin
-            S:=S + ansileftstr(IntToStr(W.aData[X + Y*Ch*Cl + Z*Ch*Cl*Ch*Cl])+'                   ', 6);
+//            S:=S + ansileftstr(IntToStr(W.aData[X + Y*Ch*Cl + Z*Ch*Cl*Ch*Cl])+'                   ', 6);
           end;
         Memo1.Lines.Add(S);
 
@@ -124,7 +124,7 @@ begin
     end;
 
 
-  W.Free;
+//  W.Free;
 end;
 
 procedure TFormTest.ButtonChunkManagerClick(Sender: TObject);

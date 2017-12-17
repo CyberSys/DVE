@@ -11,7 +11,7 @@ uses
   dveChunkManager,
 
   // External
-  SynBigTable,
+//  SynBigTable,
   Neslib.FastMath
   ;
 
@@ -19,7 +19,7 @@ type
 
 TChunkManagerFile = class(TChunkManager)
   protected
-    Storage: TSynBigTableString;
+//    Storage: TSynBigTableString;
 
   public
     constructor Create; dynamic;
@@ -36,12 +36,12 @@ constructor TChunkManagerFile.Create;
 begin
   inherited Create;
 
-  Storage := TSynBigTableString.Create('Mapdata.bin');
+//  Storage := TSynBigTableString.Create('Mapdata.bin');
 end;
 
 destructor TChunkManagerFile.Destroy;
 begin
-  Storage.Free;
+//  Storage.Free;
 
   Inherited Destroy;
 end;

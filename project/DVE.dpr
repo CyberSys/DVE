@@ -13,10 +13,8 @@ uses
   dveSimplexNoise1234 in 'source\dveSimplexNoise1234.pas',
   Neslib.Stb.RectPack in 'External\Neslib-Stb\Neslib.Stb.RectPack.pas',
   Neslib.FastMath in 'External\FastMath\Neslib.FastMath.pas',
-  SynBigTable in 'External\mORMot-master\SynBigTable.pas',
   dveChunkManagerFile in 'source\dveChunkManagerFile.pas',
-  dveComponentStreamer in 'source\dveComponentStreamer.pas',
-  dveWorld in 'source\dveWorld.pas';
+  dveComponentStreamer in 'source\dveComponentStreamer.pas';
 
 {$R *.res}
 
