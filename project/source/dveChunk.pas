@@ -292,19 +292,7 @@ begin
 
       C := IndexToBlockWorldCoords(I);
 
-//      N := snoise2(C.X, C.Z)*2;
-
-//      Block.Solid = Simplex2(Block.X, Block.Z) < Block.Y/worldheight
-
-//      MapData[I].Solid := ((snoise2(C.Z/74, (C.X+0.123)/31)+1)*0.5) > C.Y/8;
-      MapData[I].Solid := snoise2((C.X+1)/100, (C.Z+5)/100)*3 > (C.Y+5);
-
-//      if C.Y < -5 then
-//        MapData[I].Solid := true;
-
-//      MapData[I].Solid := random(100)>30;   // 50 Solid
-//      MapData[I].Solid := ((X mod 3) = 0) and ((Y mod 3) = 0) and (Z mod 3 = 0);  // Every second coordinate is solid
-//      MapData[I].Location := IndexToCoords(I, fSize);
+      MapData[I].Solid := snoise2((C.X+1)/100, (C.Z+5)/100)*5 > (C.Y+5);
 
       // We like to know if there is both solid and non-solids in the chunk. If not, no point looping through it again elsewhere
       if MapData[I].Solid = true then

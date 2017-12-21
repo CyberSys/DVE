@@ -101,18 +101,7 @@ type
     procedure ProcessKeyDown(const AKey: Integer);
     procedure ProcessKeyUp(const AKey: Integer);
     procedure HandleInput(const ADeltaTimeSec: Single);
-    { Creates a camera.
-
-      Parameters:
-        AViewWidth: width of the view (screen)
-        AViewHeight: width of the view (screen)
-        APosition: (optional) position of the camera in 3D space. Defaults to world origin (0, 0, 0).
-        AUp: (optional) world up vector. Defaults to (0, 1, 0).
-        AYaw: (optional) yaw angle in degrees. Defaults to -90.
-        APitch: (optional) pitch angle in degrees. Defaults to 0. }
-    constructor Create(const AViewWidth, AViewHeight: Integer; const AYaw: Single = DEFAULT_YAW; const APitch: Single = DEFAULT_PITCH); overload;
-    constructor Create(const AViewWidth, AViewHeight: Integer; const APosition: TVector3; const AYaw: Single = DEFAULT_YAW; const APitch: Single = DEFAULT_PITCH); overload;
-    constructor Create(const AViewWidth, AViewHeight: Integer;const APosition, AUp: TVector3; const AYaw: Single = DEFAULT_YAW; const APitch: Single = DEFAULT_PITCH); overload;
+    constructor Create(const AViewWidth, AViewHeight: Integer; const APosition, AUp: TVector3; const AYaw: Single = DEFAULT_YAW; const APitch: Single = DEFAULT_PITCH); overload;
 
   end;
 {$ENDREGION}
@@ -580,6 +569,7 @@ begin
   Target := aTarget;
 
   // Camera
+  // Why is this done here
   Camera := TCamera.Create(Target.Width, Target.Height, Vector3(0, 0, 0));
 
   ErrorCheck('SetUpRenderingContext');
@@ -1256,16 +1246,6 @@ end;
 
 
 {$REGION 'Camera'}
-
-constructor TCamera.Create(const AViewWidth, AViewHeight: Integer; const AYaw, APitch: Single);
-begin
-  Create(AViewWidth, AViewHeight, Vector3(0, 0, 0), Vector3(0, 1, 0), AYaw, APitch);
-end;
-
-constructor TCamera.Create(const AViewWidth, AViewHeight: Integer; const APosition: TVector3; const AYaw, APitch: Single);
-begin
-  Create(AViewWidth, AViewHeight, APosition, Vector3(0, 1, 0), AYaw, APitch);
-end;
 
 constructor TCamera.Create(const AViewWidth, AViewHeight: Integer; const APosition, AUp: TVector3; const AYaw, APitch: Single);
 begin

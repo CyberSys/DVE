@@ -28,7 +28,6 @@ type
     ButtonChunkManager: TButton;
     ButtonListListVicinity: TButton;
     CheckBoxDebug: TCheckBox;
-    Button1: TButton;
     procedure ButtonClearLogClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -42,7 +41,6 @@ type
     procedure ButtonChunkManagerClick(Sender: TObject);
     procedure ButtonListListVicinityClick(Sender: TObject);
     procedure ButtonToggleMemoClick(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -96,22 +94,7 @@ uses
 
 
 
-procedure TFormTest.Button1Click(Sender: TObject);
-var
-  I: Integer;
-  S: Single;
-  T: TStopWatch;
-begin
-  T := TStopWatch.Create;
-  T.Start;
 
-  for I := 0 to 1000000 do
-    begin
-//      S := snoise2(I/100, I*2);
-    end;
-  Memo1.Lines.Add('Elapsed:' + T.ElapsedMilliseconds.ToString);
-
-end;
 
 procedure TFormTest.ButtonChunkManagerClick(Sender: TObject);
 begin
@@ -189,11 +172,6 @@ begin
 
   PageControl1.ActivePageIndex := 0;
   FullScreen := false;
-
-
-
-
-
 
 end;
 

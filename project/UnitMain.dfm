@@ -96,15 +96,6 @@ object FormTest: TFormTest
         Caption = 'Debug'
         TabOrder = 3
       end
-      object Button1: TButton
-        Left = 592
-        Top = 80
-        Width = 129
-        Height = 25
-        Caption = 'Test fastmath floor'
-        TabOrder = 4
-        OnClick = Button1Click
-      end
     end
   end
   object PageControl1: TPageControl
@@ -145,6 +136,10 @@ object FormTest: TFormTest
       Font.Style = []
       ImageIndex = 1
       ParentFont = False
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       DesignSize = (
         413
         669)

@@ -32,3 +32,5 @@ project/External/dglOpenGL/README.md
 *.identcache
 *.stat
 *.identcache
+*.stat
+*.stat
