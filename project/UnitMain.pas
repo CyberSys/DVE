@@ -3,12 +3,17 @@ unit UnitMain;
 interface
 
 uses
+  // Project
   dveChunk,
   dveChunkManagerFile,
-  Generics.Collections,
   dveOpenGLHandler,
   dglOpenGL,
+
+  // External
   Neslib.FastMath,
+
+  // System
+  Generics.Collections,
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.ComCtrls,
   Vcl.Grids;
@@ -85,6 +90,7 @@ uses
   // System
   StrUtils,
   System.Diagnostics;
+
 
 {$R *.dfm}
 

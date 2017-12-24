@@ -292,7 +292,7 @@ begin
 
       C := IndexToBlockWorldCoords(I);
 
-      MapData[I].Solid := snoise2((C.X+1)/100, (C.Z+5)/100)*5 > (C.Y+5);
+      MapData[I].Solid := SNoise2D((C.X+1)/100, (C.Z+5)/100)*5 > (C.Y+5);
 
       // We like to know if there is both solid and non-solids in the chunk. If not, no point looping through it again elsewhere
       if MapData[I].Solid = true then

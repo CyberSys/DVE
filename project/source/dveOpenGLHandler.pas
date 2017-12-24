@@ -570,7 +570,7 @@ begin
 
   // Camera
   // Why is this done here
-  Camera := TCamera.Create(Target.Width, Target.Height, Vector3(0, 0, 0));
+  Camera := TCamera.Create(Target.Width, Target.Height, Vector3(0, 0, 0), Vector3(0,1,0));
 
   ErrorCheck('SetUpRenderingContext');
 end;

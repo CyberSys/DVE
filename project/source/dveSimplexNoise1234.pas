@@ -23,6 +23,7 @@ simplex: array [0..63, 0..3] of byte = (
     (2,1,0,3),(0,0,0,0),(0,0,0,0),(0,0,0,0),(3,1,0,2),(0,0,0,0),(3,2,0,1),(3,2,1,0)
     );
 
+
 {$ENDREGION}
 
 
@@ -48,9 +49,9 @@ function SNoise4D(x,y,z,w: Single): Single;
 
 
 var
-  // Permutation table. This is just a random jumble of all numbers 0-255,
-  // repeated twice to avoid wrapping the index at 255 for each lookup.
-  perm: array [0..511] of byte;
+  // Permutation table. Holds random order of one of each of numbers 0-255,
+  // Repeated twice to avoid wrapping the index at 255 for each lookup.
+  Perm: array [0..511] of byte;
 
 
 implementation
@@ -63,9 +64,26 @@ uses
 procedure CreateSeed;
 var
   I: Integer;
+  tempI, tempV: Integer;
 begin
-  for I := 0 to 511 do
-    perm[I] := Random(256); // Values 0-255
+  // Initialize 0-255 to values 0-255
+  for I := 0 to 255 do
+    Perm[I] := I;
+
+  // Randomize content
+  for I := 255 downto 1 do
+    begin
+      tempI := Random(I);     // Remember a random index
+      tempV := Perm[tempI];   // Remember a value at the random index
+
+      Perm[tempI] := Perm[I]; // Overwrite at random index with value from current index
+      Perm[I]     := tempV;   // Current index value is the values from random index
+    end;
+
+  // Repeat and occupy second half of array
+  for I := 0 to 255 do
+    Perm[I+256] := Perm[I];
+
 end;
 
 
@@ -268,37 +286,68 @@ begin
   y0 := y-YY0;                //    float y0 = y-Y0;
   z0 := z-ZZ0;                //    float z0 = z-Z0;
 
-  // For the 3D case, the simplex shape is a slightly irregular tetrahedron.
-  // Determine which simplex we are in.
-  // This code would benefit from a backport from the GLSL version!
-
   if (x0 >= y0) then
     begin
-      if (y0 >= z0) then      begin i1:=1; j1:=0; k1:=0; i2:=1; j2:=1; k2:=0; end // X Y Z order
-      else if (x0 >= z0) then begin i1:=1; j1:=0; k1:=0; i2:=1; j2:=0; k2:=1; end // X Z Y order
-      else                    begin i1:=0; j1:=0; k1:=1; i2:=1; j2:=0; k2:=1; end // Z X Y order
+      if (y0 >= z0) then
+        begin
+          i1:=1;
+          j1:=0;
+          k1:=0;
+          i2:=1;
+          j2:=1;
+          k2:=0;
+        end
+      else if (x0 >= z0) then
+        begin
+          i1:=1;
+          j1:=0;
+          k1:=0;
+          i2:=1;
+          j2:=0;
+          k2:=1;
+        end // X Z Y order
+      else
+        begin
+          i1:=0;
+          j1:=0;
+          k1:=1;
+          i2:=1;
+          j2:=0;
+          k2:=1;
+        end // Z X Y order
     end
-  else begin
-      if (y0 < z0) then       begin i1:=0; j1:=0; k1:=1; i2:=0; j2:=1; k2:=1; end // Z Y X order
-      else if (x0 < z0) then  begin i1:=0; j1:=1; k1:=0; i2:=0; j2:=1; k2:=1; end // Y Z X order
-      else                    begin i1:=0; j1:=1; k1:=0; i2:=1; j2:=1; k2:=0; end // Y X Z order
+  else
+    begin
+      if (y0 < z0) then
+        begin
+          i1:=0;
+          j1:=0;
+          k1:=1;
+          i2:=0;
+          j2:=1;
+          k2:=1;
+        end // Z Y X order
+      else if (x0 < z0) then
+        begin
+          i1:=0;
+          j1:=1;
+          k1:=0;
+          i2:=0;
+          j2:=1;
+          k2:=1;
+        end // Y Z X order
+      else
+        begin
+          i1:=0;
+          j1:=1;
+          k1:=0;
+          i2:=1;
+          j2:=1;
+          k2:=0;
+        end // Y X Z order
     end;
-  // if(x0>=y0) {
-  //   if(y0>=z0)
-  //     { i1=1; j1=0; k1=0; i2=1; j2=1; k2=0; } // X Y Z order
-  //     else if(x0>=z0) { i1=1; j1=0; k1=0; i2=1; j2=0; k2=1; } // X Z Y order
-  //     else { i1=0; j1=0; k1=1; i2=1; j2=0; k2=1; } // Z X Y order
-  //   }
-  // else { // x0<y0
-  //   if(y0<z0) { i1=0; j1=0; k1=1; i2=0; j2=1; k2=1; } // Z Y X order
-  //   else if(x0<z0) { i1=0; j1=1; k1=0; i2=0; j2=1; k2=1; } // Y Z X order
-  //   else { i1=0; j1=1; k1=0; i2=1; j2=1; k2=0; } // Y X Z order
-  // }
-  // A step of (1,0,0) in (i,j,k) means a step of (1-c,-c,-c) in (x,y,z),
-  // a step of (0,1,0) in (i,j,k) means a step of (-c,1-c,-c) in (x,y,z), and
-  // a step of (0,0,1) in (i,j,k) means a step of (-c,-c,1-c) in (x,y,z), where
-  // c = 1/6.
-  x1 := x0-i1+G3;         //    float x1 = x0 - i1 + G3;        // Offsets for second corner in (x,y,z) coords
+
+  x1 := x0-i1+G3;         // Offsets for second corner in (x,y,z) coords
   y1 := y0-j1+G3;         //    float y1 = y0 - j1 + G3;
   z1 := z0-k1+G3;         //    float z1 = z0 - k1 + G3;
   x2 := x0-i2+(2.0*G3);   //    float x2 = x0 - i2 + 2.0f*G3;   // Offsets for third corner in (x,y,z) coords
@@ -353,103 +402,88 @@ begin
 end;
 
 
-
 function SNoise4D(x,y,z,w: Single): Single;
-
 const
-  // The skewing and unskewing factors are hairy again for the 4D case
-  F4 = 0.309016994; //  #define F4 0.309016994 // F4 = (Math.sqrt(5.0)-1.0)/4.0
-  G4 = 0.138196601; //  #define G4 0.138196601 // G4 = (5.0-Math.sqrt(5.0))/20.0
+  F4 = 0.309016994;
+  G4 = 0.138196601;
 var
-  n0, n1, n2, n3, n4: single; // float n0, n1, n2, n3, n4; // Noise contributions from the five corners
+  n0, n1, n2, n3, n4: single;
   s, xs, ys, zs, ws: single;
   i,j,k,l: integer;
   t, XX0, YY0, ZZ0, WW0: single;
   x0, y0, z0, w0: single;
   c, c1, c2, c3, c4, c5, c6: integer;
-//    int i1, j1, k1, l1; // The integer offsets for the second simplex corner
-//    int i2, j2, k2, l2; // The integer offsets for the third simplex corner
-//    int i3, j3, k3, l3; // The integer offsets for the fourth simplex corner
-  i1,i2,i3, j1,j2,j3, k1,k2,k3, l1,l2,l3: integer;
-  x1,x2,x3,x4,y1,y2,y3,y4,z1,z2,z3,z4,w1,w2,w3,w4: single;
+  i1,i2,i3: integer;
+  j1,j2,j3: integer;
+  k1,k2,k3: integer;
+  l1,l2,l3: integer;
+  x1,x2,x3,x4: single;
+  y1,y2,y3,y4: single;
+  z1,z2,z3,z4: single;
+  w1,w2,w3,w4: single;
   ii,jj,kk,ll: integer;
   t0,t1,t2,t3,t4: single;
 begin
+  s := (x+y+z+w)*F4;    // Factor for 4D skewing
+  xs := x+s;
+  ys := y+s;
+  zs := z+s;
+  ws := w+s;
+  i := floor(xs);
+  j := floor(ys);
+  k := floor(zs);
+  l := floor(ws);
 
-  // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
-  s := (x+y+z+w)*F4;    //    float s = (x + y + z + w) * F4; // Factor for 4D skewing
-  xs := x+s;            //    float xs = x + s;
-  ys := y+s;            //    float ys = y + s;
-  zs := z+s;            //    float zs = z + s;
-  ws := w+s;            //    float ws = w + s;
-  i := floor(xs);       //    int i = FASTFLOOR(xs);
-  j := floor(ys);       //    int j = FASTFLOOR(ys);
-  k := floor(zs);       //    int k = FASTFLOOR(zs);
-  l := floor(ws);       //    int l = FASTFLOOR(ws);
+  t := (i+j+k+l)*G4;    // Factor for 4D unskewing
+  XX0 := i-t;           // Unskew the cell origin back to (x,y,z,w) space
+  YY0 := j-t;
+  ZZ0 := k-t;
+  WW0 := l-t;
 
-  t := (i+j+k+l)*G4;    //    float t = (i + j + k + l) * G4; // Factor for 4D unskewing
-  XX0 := i-t;           //    float X0 = i - t; // Unskew the cell origin back to (x,y,z,w) space
-  YY0 := j-t;           //    float Y0 = j - t;
-  ZZ0 := k-t;           //    float Z0 = k - t;
-  WW0 := l-t;           //    float W0 = l - t;
+  x0 := x-XX0;          // The x,y,z,w distances from the cell origin
+  y0 := y-YY0;
+  z0 := z-ZZ0;
+  w0 := w-WW0;
 
-  x0 := x-XX0;          //    float x0 = x - X0;  // The x,y,z,w distances from the cell origin
-  y0 := y-YY0;          //    float y0 = y - Y0;
-  z0 := z-ZZ0;          //    float z0 = z - Z0;
-  w0 := w-WW0;          //    float w0 = w - W0;
+  if x0>y0 then c1:=32 else c1:=0;
+  if x0>z0 then c2:=16 else c2:=0;
+  if y0>z0 then c3:=8 else c3:=0;
+  if x0>w0 then c4:=4 else c4:=0;
+  if y0>w0 then c5:=2 else c5:=0;
+  if z0>w0 then c6:=1 else c6:=0;
+  c := c1+c2+c3+c4+c5+c6;
 
-  // For the 4D case, the simplex is a 4D shape I won't even try to describe.
-  // To find out which of the 24 possible simplices we're in, we need to
-  // determine the magnitude ordering of x0, y0, z0 and w0.
-  // The method below is a good way of finding the ordering of x,y,z,w and
-  // then find the correct traversal order for the simplex we’re in.
-  // First, six pair-wise comparisons are performed between each possible pair
-  // of the four coordinates, and the results are used to add up binary bits
-  // for an integer index.
-  if x0>y0 then c1:=32 else c1:=0;    //    int c1 = (x0 > y0) ? 32 : 0;
-  if x0>z0 then c2:=16 else c2:=0;    //    int c2 = (x0 > z0) ? 16 : 0;
-  if y0>z0 then c3:=8 else c3:=0;     //    int c3 = (y0 > z0) ? 8 : 0;
-  if x0>w0 then c4:=4 else c4:=0;     //    int c4 = (x0 > w0) ? 4 : 0;
-  if y0>w0 then c5:=2 else c5:=0;     //    int c5 = (y0 > w0) ? 2 : 0;
-  if z0>w0 then c6:=1 else c6:=0;     //    int c6 = (z0 > w0) ? 1 : 0;
-  c := c1+c2+c3+c4+c5+c6;             //    int c = c1 + c2 + c3 + c4 + c5 + c6;
-  // simplex[c] is a 4-vector with the numbers 0, 1, 2 and 3 in some order.
-  // Many values of c will never occur, since e.g. x>y>z>w makes x<z, y<w and x<w
-  // impossible. Only the 24 indices which have non-zero entries make any sense.
-  // We use a thresholding to set the coordinates in turn from the largest magnitude.
-  // The number 3 in the "simplex" array is at the position of the largest coordinate.
-  if simplex[c][0] >= 3 then i1 := 1 else i1:=0;//    i1 = simplex[c][0]>=3 ? 1 : 0;
-  if simplex[c][1] >= 3 then j1 := 1 else j1:=0;//    j1 = simplex[c][1]>=3 ? 1 : 0;
-  if simplex[c][2] >= 3 then k1 := 1 else k1:=0;//    k1 = simplex[c][2]>=3 ? 1 : 0;
-  if simplex[c][3] >= 3 then l1 := 1 else l1:=0;//    l1 = simplex[c][3]>=3 ? 1 : 0;
-  // The number 2 in the "simplex" array is at the second largest coordinate.
-  if simplex[c][0] >= 2 then i2 := 1 else i2:=0;//    i2 = simplex[c][0]>=2 ? 1 : 0;
-  if simplex[c][1] >= 2 then j2 := 1 else j2:=0;//    j2 = simplex[c][1]>=2 ? 1 : 0;
-  if simplex[c][2] >= 2 then k2 := 1 else k2:=0;//    k2 = simplex[c][2]>=2 ? 1 : 0;
-  if simplex[c][3] >= 2 then l2 := 1 else l2:=0;//    l2 = simplex[c][3]>=2 ? 1 : 0;
-  // The number 1 in the "simplex" array is at the second smallest coordinate.
-  if simplex[c][0] >= 1 then i3 := 1 else i3:=0;//    i3 = simplex[c][0]>=1 ? 1 : 0;
-  if simplex[c][1] >= 1 then j3 := 1 else j3:=0;//    j3 = simplex[c][1]>=1 ? 1 : 0;
-  if simplex[c][2] >= 1 then k3 := 1 else k3:=0;//    k3 = simplex[c][2]>=1 ? 1 : 0;
-  if simplex[c][3] >= 1 then l3 := 1 else l3:=0;//    l3 = simplex[c][3]>=1 ? 1 : 0;
-  // The fifth corner has all coordinate offsets = 1, so no need to look that up.
+  if simplex[c][0] >= 3 then i1 := 1 else i1:=0;
+  if simplex[c][1] >= 3 then j1 := 1 else j1:=0;
+  if simplex[c][2] >= 3 then k1 := 1 else k1:=0;
+  if simplex[c][3] >= 3 then l1 := 1 else l1:=0;
 
-  x1 := x0-i1+G4;         //    float x1 = x0 - i1 + G4; // Offsets for second corner in (x,y,z,w) coords
-  y1 := y0-j1+G4;         //    float y1 = y0 - j1 + G4;
-  z1 := z0-k1+G4;         //    float z1 = z0 - k1 + G4;
-  w1 := w0-l1+G4;         //    float w1 = w0 - l1 + G4;
-  x2 := x0-i2+(2.0*G4);   //    float x2 = x0 - i2 + 2.0f*G4; // Offsets for third corner in (x,y,z,w) coords
-  y2 := y0-j2+(2.0*G4);   //    float y2 = y0 - j2 + 2.0f*G4;
-  z2 := z0-k2+(2.0*G4);   //    float z2 = z0 - k2 + 2.0f*G4;
-  w2 := w0-l2+(2.0*G4);   //    float w2 = w0 - l2 + 2.0f*G4;
-  x3 := x0-i3+(3.0*G4);   //    float x3 = x0 - i3 + 3.0f*G4; // Offsets for fourth corner in (x,y,z,w) coords
-  y3 := y0-j3+(3.0*G4);   //    float y3 = y0 - j3 + 3.0f*G4;
-  z3 := z0-k3+(3.0*G4);   //    float z3 = z0 - k3 + 3.0f*G4;
-  w3 := w0-l3+(3.0*G4);   //    float w3 = w0 - l3 + 3.0f*G4;
-  x4 := x0-1+(4.0*G4);    //    float x4 = x0 - 1.0f + 4.0f*G4; // Offsets for last corner in (x,y,z,w) coords
-  y4 := y0-1+(4.0*G4);    //    float y4 = y0 - 1.0f + 4.0f*G4;
-  z4 := z0-1+(4.0*G4);    //    float z4 = z0 - 1.0f + 4.0f*G4;
-  w4 := w0-1+(4.0*G4);    //    float w4 = w0 - 1.0f + 4.0f*G4;
+  if simplex[c][0] >= 2 then i2 := 1 else i2:=0;
+  if simplex[c][1] >= 2 then j2 := 1 else j2:=0;
+  if simplex[c][2] >= 2 then k2 := 1 else k2:=0;
+  if simplex[c][3] >= 2 then l2 := 1 else l2:=0;
+
+  if simplex[c][0] >= 1 then i3 := 1 else i3:=0;
+  if simplex[c][1] >= 1 then j3 := 1 else j3:=0;
+  if simplex[c][2] >= 1 then k3 := 1 else k3:=0;
+  if simplex[c][3] >= 1 then l3 := 1 else l3:=0;
+
+  x1 := x0-i1+G4;
+  y1 := y0-j1+G4;
+  z1 := z0-k1+G4;
+  w1 := w0-l1+G4;
+  x2 := x0-i2+(2.0*G4);
+  y2 := y0-j2+(2.0*G4);
+  z2 := z0-k2+(2.0*G4);
+  w2 := w0-l2+(2.0*G4);
+  x3 := x0-i3+(3.0*G4);
+  y3 := y0-j3+(3.0*G4);
+  z3 := z0-k3+(3.0*G4);
+  w3 := w0-l3+(3.0*G4);
+  x4 := x0-1+(4.0*G4);
+  y4 := y0-1+(4.0*G4);
+  z4 := z0-1+(4.0*G4);
+  w4 := w0-1+(4.0*G4);
 
   // Wrap the integer indices at 256, to avoid indexing perm[] out of bounds
   ii := (i and $FF);      //    int ii = i & 0xff;
@@ -458,43 +492,48 @@ begin
   ll := (l and $FF);      //    int ll = l & 0xff;
 
   // Calculate the contribution from the five corners
-  t0 := 0.6-(x0*x0)-(y0*y0)-(z0*z0)-(w0*w0);  //    float t0 = 0.6f - x0*x0 - y0*y0 - z0*z0 - w0*w0;
-  if t0<0.0 then n0:=0.0    //    if(t0 < 0.0f) n0 = 0.0f;
-    else begin
-      t0 := t0*t0;          //    t0 *= t0;
-                            //    n0 = t0 * t0 * grad4(perm[ii+perm[jj+perm[kk+perm[ll]]]], x0, y0, z0, w0);
+  t0 := 0.6-(x0*x0)-(y0*y0)-(z0*z0)-(w0*w0);
+  if t0<0.0 then
+    n0:=0.0
+  else
+    begin
+      t0 := t0*t0;
       n0 := t0*t0*grad4(perm[ii+perm[jj+perm[kk+perm[ll]]]], x0, y0, z0, w0);
     end;
 
-  t1 := 0.6-(x1*x1)-(y1*y1)-(z1*z1)-(w1*w1);  //   float t1 = 0.6f - x1*x1 - y1*y1 - z1*z1 - w1*w1;
-  if t1<0.0 then n1:=0.0    //    if(t1 < 0.0f) n1 = 0.0f;
-    else begin
-      t1 := t1*t1;          //    t1 *= t1;
-                            //    n1 = t1 * t1 * grad4(perm[ii+i1+perm[jj+j1+perm[kk+k1+perm[ll+l1]]]], x1, y1, z1, w1);
+  t1 := 0.6-(x1*x1)-(y1*y1)-(z1*z1)-(w1*w1);
+  if t1<0.0 then
+    n1:=0.0
+  else
+    begin
+      t1 := t1*t1;
       n1 := t1*t1*grad4(perm[ii+i1+perm[jj+j1+perm[kk+k1+perm[ll+l1]]]], x1, y1, z1, w1);
     end;
 
-  t2 := 0.6-(x2*x2)-(y2*y2)-(z2*z2)-(w2*w2);  //   float t2 = 0.6f - x2*x2 - y2*y2 - z2*z2 - w2*w2;
-  if t2<0.0 then n2:=0.0    //    if(t2 < 0.0f) n2 = 0.0f;
-    else begin
-      t2 := t2*t2;          //    t2 *= t2;
-                            //    n2 = t2 * t2 * grad4(perm[ii+i2+perm[jj+j2+perm[kk+k2+perm[ll+l2]]]], x2, y2, z2, w2);
+  t2 := 0.6-(x2*x2)-(y2*y2)-(z2*z2)-(w2*w2);
+  if t2<0.0 then
+    n2:=0.0
+  else
+    begin
+      t2 := t2*t2;
       n2 := t2*t2*grad4(perm[ii+i2+perm[jj+j2+perm[kk+k2+perm[ll+l2]]]], x2, y2, z2, w2);
     end;
 
-  t3 := 0.6-(x3*x3)-(y3*y3)-(z3*z3)-(w3*w3);  //   float t3 = 0.6f - x3*x3 - y3*y3 - z3*z3 - w3*w3;
-  if t3<0.0 then n3:=0.0    //    if(t3 < 0.0f) n3 = 0.0f;
-    else begin
-      t3 := t3*t3;          //    t3 *= t3;
-                            //    n3 = t3 * t3 * grad4(perm[ii+i3+perm[jj+j3+perm[kk+k3+perm[ll+l3]]]], x3, y3, z3, w3);
+  t3 := 0.6-(x3*x3)-(y3*y3)-(z3*z3)-(w3*w3);
+  if t3<0.0 then
+    n3:=0.0
+  else
+    begin
+      t3 := t3*t3;
       n3 := t3*t3*grad4(perm[ii+i3+perm[jj+j3+perm[kk+k3+perm[ll+l3]]]], x3, y3, z3, w3);
     end;
 
-  t4 := 0.6-(x4*x4)-(y4*y4)-(z4*z4)-(w4*w4);  //   float t4 = 0.6f - x4*x4 - y4*y4 - z4*z4 - w4*w4;
-  if t4<0.0 then n4:=0.0    //    if(t4 < 0.0f) n4 = 0.0f;
-    else begin
-      t4 := t4*t4;          //    t4 *= t4;
-                            //    n4 = t4 * t4 * grad4(perm[ii+1+perm[jj+1+perm[kk+1+perm[ll+1]]]], x4, y4, z4, w4);
+  t4 := 0.6-(x4*x4)-(y4*y4)-(z4*z4)-(w4*w4);
+  if t4<0.0 then
+    n4:=0.0
+  else
+    begin
+      t4 := t4*t4;
       n4 := t4*t4*grad4(perm[ii+1+perm[jj+1+perm[kk+1+perm[ll+1]]]], x4, y4, z4, w4);
     end;
 
@@ -506,7 +545,7 @@ end;
 
 Initialization
 
-CreateSeed;
+  CreateSeed;
 
 end.
 
