@@ -20,44 +20,44 @@ object FormTest: TFormTest
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter1: TSplitter
-    Left = 800
+    Left = 700
     Top = 0
     Height = 697
     ExplicitLeft = 328
     ExplicitTop = 352
     ExplicitHeight = 100
   end
-  object Panel2: TPanel
+  object PanelLeftSide: TPanel
     Left = 0
     Top = 0
-    Width = 800
+    Width = 700
     Height = 697
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
-    object Panel1: TPanel
+    object PanelDrawSurface: TPanel
       Left = 0
       Top = 0
-      Width = 800
+      Width = 700
       Height = 432
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
-      OnMouseDown = Panel1MouseDown
-      OnMouseMove = Panel1MouseMove
-      OnMouseUp = Panel1MouseUp
-      OnResize = Panel1Resize
+      OnMouseDown = PanelDrawSurfaceMouseDown
+      OnMouseMove = PanelDrawSurfaceMouseMove
+      OnMouseUp = PanelDrawSurfaceMouseUp
+      OnResize = PanelDrawSurfaceResize
     end
     object GroupBox1: TGroupBox
       Left = 0
       Top = 432
-      Width = 800
+      Width = 700
       Height = 265
       Align = alBottom
       Caption = 'Controls'
       TabOrder = 1
       DesignSize = (
-        800
+        700
         265)
       object CheckBoxRender: TCheckBox
         Left = 23
@@ -70,16 +70,16 @@ object FormTest: TFormTest
         TabOrder = 0
       end
       object ButtonChunkManager: TButton
-        Left = 592
-        Top = 16
-        Width = 98
+        Left = 136
+        Top = 47
+        Width = 145
         Height = 25
-        Caption = 'Start'
+        Caption = 'Create on the fly'
         TabOrder = 1
         OnClick = ButtonChunkManagerClick
       end
       object ButtonListListVicinity: TButton
-        Left = 696
+        Left = 596
         Top = 16
         Width = 98
         Height = 25
@@ -96,26 +96,40 @@ object FormTest: TFormTest
         Caption = 'Debug'
         TabOrder = 3
       end
+      object ButtonCreateBenchmark: TButton
+        Left = 136
+        Top = 16
+        Width = 145
+        Height = 25
+        Caption = 'Create benchmark'
+        TabOrder = 4
+        OnClick = ButtonCreateBenchmarkClick
+      end
+      object ButtonOffsetbuilder: TButton
+        Left = 596
+        Top = 47
+        Width = 98
+        Height = 25
+        Caption = 'Build offsets'
+        TabOrder = 5
+        OnClick = ButtonOffsetbuilderClick
+      end
     end
   end
   object PageControl1: TPageControl
-    Left = 803
+    Left = 703
     Top = 0
-    Width = 421
+    Width = 521
     Height = 697
     ActivePage = TabSheetWorld
     Align = alClient
     TabOrder = 1
     object TabSheetWorld: TTabSheet
       Caption = 'World'
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object Memo1: TMemo
         Left = 0
         Top = 0
-        Width = 413
+        Width = 513
         Height = 669
         Align = alClient
         Font.Charset = DEFAULT_CHARSET
@@ -140,15 +154,11 @@ object FormTest: TFormTest
       Font.Style = []
       ImageIndex = 1
       ParentFont = False
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       DesignSize = (
-        413
+        513
         669)
       object ButtonClearLog: TButton
-        Left = 335
+        Left = 435
         Top = 3
         Width = 75
         Height = 25

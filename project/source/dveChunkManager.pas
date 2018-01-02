@@ -18,6 +18,12 @@ uses
   Generics.Collections;
 
 type
+//  TWorldLocation = record
+//    X: Int64;
+//    Y: Int64;
+//    Z: Int64;
+//  end;
+
   TChunkManager = class
   protected
     aSizeEdge: Integer;                                     // Chunk edge size
@@ -31,7 +37,7 @@ type
 
     procedure Log(const msg: String);                       // Add log entry
     function GetVerticesCount: Cardinal;
-
+    procedure MakeOutliers;                                 // Fill outliers array. Which indices are 'edge' blocks
   public
     Debug: Boolean;
     Feedback: TStringList;
@@ -45,29 +51,29 @@ type
     var ShaderVoxel: TShader;
     var VertexLayoutForVoxel: TVertexLayout;                // Vertex array layout for voxels
 
-    constructor Create; dynamic;
+    constructor Create(const bSizeEdge: Integer); dynamic;
     Destructor Destroy; override;
 
     procedure ManageLists(const Camera: TCamera);           // Manages lists, run once per frame
     procedure UpdateListVicinity(const Camera: TCamera);    // Run once moved enough
     procedure ListLoadChunksProcess(const Steps: Cardinal); // Process load chunk list
     procedure ListUnloadProcess(const Steps: Cardinal);     // Process unload chunk list one step
+    procedure ChunkSave(const aChunk: TChunk); dynamic;     // Save chunk method
+    function ChunkLoad(const aID: String; var aChunk: TChunk): Boolean; dynamic; // Load chunk method
+    function ChunkLoadCreate(aID: String): TChunk;          // Load or create chunk
 
-    function ChunkLoadCreate(aID: String): TChunk;          // Load or create chunk. Always returns one, use responsibly
-      dynamic;                                              // Immediately close by chunks
-
-    procedure UpdateVertices(const Chunks: TDictionary<String, TChunk>);
     function UpdateChunkFrustrums(const aCamera: TCamera): TMatrix3;        // Updates chunks to know if they are in frustrum
 
-    // Creates Vertices and Indices for a Chunk
-    procedure ChunkVertices(aChunk: TChunk; var aVert: TArray<Single>; var aInd: TArray<GLUInt>);
+    procedure UpdateVertices(const Chunks: TDictionary<String, TChunk>);                            // Loop a list to create VAO if needed
+    procedure ChunkVertices(aChunk: TChunk; var aVert: TArray<Single>; var aInd: TArray<GLUInt>);   // Creates Vertices and Indices for a Chunk
+
+    procedure OpenGLStuff;                                  // I'm sure this shouldn't be part of ChunkManager
 
     property VerticesCount: Cardinal read GetVerticesCount;
     property LastVicinityUpdateLocation: TVector3 read aLastVicinityUpdateLocation write aLastVicinityUpdateLocation;
 
+    function IsOutlier(const aI: Integer): boolean;         // Check if index is real data or outlier data
 
-    procedure MakeOutliers;
-    function IsOutlier(const aI: Integer): boolean;
 //  published
     property SizeEdge: Integer read aSizeEdge write aSizeEdge;
     property WorldSeed: String read aWorldSeed write aWorldSeed;
@@ -104,30 +110,25 @@ begin
 end;
 
 
-constructor TChunkManager.Create;
+constructor TChunkManager.Create(const bSizeEdge: Integer);
 begin
   inherited Create;
   Debug := false;
 
   FeedBack := TStringList.Create;
-  aSizeEdge := 11;    // Default chunk size
+  aSizeEdge := bSizeEdge;
 
   ListVicinity := TDictionary<String, TChunk>.Create;
-//  ListLoadGround := TDictionary<String, TChunk>.Create;
   ListLoad := TDictionary<String, TChunk>.Create;
   ListLoaded := TDictionary<String, TChunk>.Create;
   ListUnLoad := TDictionary<String, TChunk>.Create;
   ListVisibility := TDictionary<String, TChunk>.Create;
 
-  // Create voxel related shaders and link the uniforms
-  ShaderVoxel := TShader.Create('Resources\Shaders\18AO.vert', 'Resources\Shaders\18AO.frag');
 
-  VertexLayoutForVoxel.Start(ShaderVoxel);
-  VertexLayoutForVoxel.Add('position', 3);
-  VertexLayoutForVoxel.Add('TexCoordIn', 3);
-  VertexLayoutForVoxel.Add('lightLevel', 1);
 
   aLastVicinityUpdateLocation := Vector3(0,0,99999999);
+
+  MakeOutliers;
 end;
 
 
@@ -155,6 +156,18 @@ begin
   ShaderVoxel.Free;
 
   Inherited Destroy;
+end;
+
+
+procedure TChunkManager.OpenGLStuff;
+begin
+  // Create voxel related shaders and link the uniforms
+  ShaderVoxel := TShader.Create('Resources\Shaders\18AO.vert', 'Resources\Shaders\18AO.frag');
+
+  VertexLayoutForVoxel.Start(ShaderVoxel);
+  VertexLayoutForVoxel.Add('position', 3);
+  VertexLayoutForVoxel.Add('TexCoordIn', 3);
+  VertexLayoutForVoxel.Add('lightLevel', 1);
 end;
 
 
@@ -276,7 +289,7 @@ begin
               C := ChunkLoadCreate(aID);                  // Load Chunk from disk or create it
 
               if C.CreateVertices then                    // Oddly this made id not help speedthings slower
-                ListLoaded.AddOrSetValue (C.IDString, C)  // Add to list of loaded chunks -> no error if nonexistent
+                ListLoaded.AddOrSetValue(C.IDString, C)   // Add to list of loaded chunks -> no error if nonexistent
               else
                 C.Free;                                   // Non drawable chunk so free it
             end;
@@ -310,9 +323,9 @@ begin
           ListUnLoad.Remove(aID);           // Remove from list
 
           // Save to disk if changed use buffer+async
-          //Add save etc here
+          ChunkSave(C);
           FreeAndNil(C);
-//          C.Free;
+
         end
       else                                  // Break out, nothing to process
         break;
@@ -324,12 +337,19 @@ end;
 function TChunkManager.ChunkLoadCreate(aID: string): TChunk;
 var
   C: TVector3;
+  aC: TChunk;
 begin
+
   // Check from loaded chunks
   if ListLoaded.TryGetValue(aID, Result) then exit;
 
+
   // Check from disk
-  // Yeah it wasn't on the disk now go away!
+  if ChunkLoad(aID, aC) then
+    begin
+      Result := aC;
+      exit;
+    end;
 
   // Create it from thin air
   C := CoordsFromID(aID);
@@ -550,25 +570,21 @@ begin
 
       CInitialized := false;
 
-      // Only process solid blocks, or blocks at the negative edge
-//      if (aChunk.MapData[I].Solid) or (NegativeEdgeBlock) then
-//        begin
+      // Only process nonsolid blocks
+      if (not aChunk.MapData[I].Solid) then
+        begin
 
           // Calculate these only once
           if not CInitialized then
             begin
-
-                Cw := aChunk.IndexToBlockWorldCoords(I);
-
-//              if aChunk.MapData[I].Highlight then                     // Wow so elegant way to highlight :P
-//                Highlight := 1
-//              else
-                Highlight := 0;
-
+              Cw := aChunk.IndexToBlockWorldCoords(I);
+              Highlight := 0;
               CInitialized := true;
-              TextureId := 0;
-
+              TextureId := aChunk.MapData[I].Terrain*2;
             end;
+
+            // Ambient occlusion notes
+            // We are transparent block!!! checking for neighbours
 
 
 {$REGION '            Negative direction'}
@@ -583,7 +599,7 @@ begin
               aVert[NextVIndexToUse+3]  :=  1.0;                        // tex x
               aVert[NextVIndexToUse+4]  :=  1.0;                        // tex y
               aVert[NextVIndexToUse+5]  :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+6]  :=  aChunk.AmbientOcclusion2(I, d7, d8, d17)+Highlight;
+              aVert[NextVIndexToUse+6]  :=  aChunk.AmbientOcclusion2(I, d16, d17, d17)+Highlight;
 
               aVert[NextVIndexToUse+7]  :=  0.5 + Cw.X;                 // Point 5
               aVert[NextVIndexToUse+8]  := -0.5 + Cw.Y;
@@ -591,23 +607,23 @@ begin
               aVert[NextVIndexToUse+10] :=  1;
               aVert[NextVIndexToUse+11] :=  0;
               aVert[NextVIndexToUse+12] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d1, d2, d11)+Highlight;
+              aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d10, d11, d14)+Highlight;
 
-              aVert[NextVIndexToUse+14] := -0.5 + Cw.X;
+              aVert[NextVIndexToUse+14] := -0.5 + Cw.X;                 // 6
               aVert[NextVIndexToUse+15] := -0.5 + Cw.Y;
               aVert[NextVIndexToUse+16] := -0.5 + Cw.Z;
               aVert[NextVIndexToUse+17] :=  0;
               aVert[NextVIndexToUse+18] :=  0;
               aVert[NextVIndexToUse+19] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d1, d0, d9)+Highlight;
+              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d10, d9, d12)+Highlight;
 
-              aVert[NextVIndexToUse+21] := -0.5 + Cw.X;
+              aVert[NextVIndexToUse+21] := -0.5 + Cw.X;                 // 7
               aVert[NextVIndexToUse+22] :=  0.5 + Cw.Y;
               aVert[NextVIndexToUse+23] := -0.5 + Cw.Z;
               aVert[NextVIndexToUse+24] :=  0;
               aVert[NextVIndexToUse+25] :=  1;
               aVert[NextVIndexToUse+26] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d7, d6, d15)+Highlight;
+              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d15, d15, d16)+Highlight;
 
               aInd[NextIIndexToUse]     :=  0 + I2*4+IndexOffset;       // Top right half
               aInd[NextIIndexToUse+1]   :=  1 + I2*4+IndexOffset;
@@ -675,7 +691,7 @@ begin
               (aChunk.MapData[I].Solid = false) and (aChunk.GetBlock(I, d12).Solid=true)
             then
             begin
-              aVert[NextVIndexToUse]    := -0.5 + Cw.X;                 // x 12 LEFT
+              aVert[NextVIndexToUse]    := -0.5 + Cw.X;                 // x 12 LEFT point 3
               aVert[NextVIndexToUse+1]  :=  0.5 + Cw.Y;                 // y
               aVert[NextVIndexToUse+2]  :=  0.5 + Cw.Z;                 // z
               aVert[NextVIndexToUse+3]  :=  0;                          // texture x
@@ -683,30 +699,29 @@ begin
               aVert[NextVIndexToUse+5]  :=  TextureId;                  // tex id
               aVert[NextVIndexToUse+6]  :=  aChunk.AmbientOcclusion2(I, d15, d24, d25)+Highlight;
 
-              aVert[NextVIndexToUse+7]  := -0.5 + Cw.X;
+              aVert[NextVIndexToUse+7]  := -0.5 + Cw.X;                 // 7
               aVert[NextVIndexToUse+8]  :=  0.5 + Cw.Y;
               aVert[NextVIndexToUse+9]  := -0.5 + Cw.Z;
               aVert[NextVIndexToUse+10] :=  1;
               aVert[NextVIndexToUse+11] :=  0;
               aVert[NextVIndexToUse+12] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d14, d6, d7)+Highlight;
+              aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d15, d6, d7)+Highlight;
 
-              aVert[NextVIndexToUse+14] := -0.5 + Cw.X;
+              aVert[NextVIndexToUse+14] := -0.5 + Cw.X;                 // 6
               aVert[NextVIndexToUse+15] := -0.5 + Cw.Y;
               aVert[NextVIndexToUse+16] := -0.5 + Cw.Z;
               aVert[NextVIndexToUse+17] :=  1;
               aVert[NextVIndexToUse+18] :=  1;
               aVert[NextVIndexToUse+19] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d9, d0, d1)+Highlight;
+              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d4, d1, d10)+Highlight;
 
-              aVert[NextVIndexToUse+21] := -0.5 + Cw.X;
+              aVert[NextVIndexToUse+21] := -0.5 + Cw.X;                 // 2
               aVert[NextVIndexToUse+22] := -0.5 + Cw.Y;
               aVert[NextVIndexToUse+23] :=  0.5 + Cw.Z;
               aVert[NextVIndexToUse+24] :=  0;
               aVert[NextVIndexToUse+25] :=  1;
-
               aVert[NextVIndexToUse+26] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d9, d18, d19)+Highlight;
+              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d22, d19, d10)+Highlight;
 
               aInd[NextIIndexToUse]     :=  0 + I2*4+IndexOffset;       // Top right half
               aInd[NextIIndexToUse+1]   :=  1 + I2*4+IndexOffset;
@@ -729,37 +744,41 @@ begin
               (aChunk.MapData[I].Solid = false) and (aChunk.GetBlock(I, d14).Solid=true)
             then
             begin                                                       // Side 14 Right
-              aVert[NextVIndexToUse]    :=  0.5 + Cw.X;                 // x      Right
+              aVert[NextVIndexToUse]    :=  0.5 + Cw.X;                 // x      Right  0
               aVert[NextVIndexToUse+1]  :=  0.5 + Cw.Y;                 // y
               aVert[NextVIndexToUse+2]  :=  0.5 + Cw.Z;                 // z
               aVert[NextVIndexToUse+3]  :=  0;                          // texture x
               aVert[NextVIndexToUse+4]  :=  0;                          // texture y
               aVert[NextVIndexToUse+5]  :=  TextureId;                  // tex id
               aVert[NextVIndexToUse+6]  :=  aChunk.AmbientOcclusion2(I, d25, d26, d17)+Highlight;
+//              aVert[NextVIndexToUse+6] :=  1;
 
-              aVert[NextVIndexToUse+7]  :=  0.5 + Cw.X;
+              aVert[NextVIndexToUse+7]  :=  0.5 + Cw.X;                 // 4
               aVert[NextVIndexToUse+8]  :=  0.5 + Cw.Y;
               aVert[NextVIndexToUse+9]  := -0.5 + Cw.Z;
               aVert[NextVIndexToUse+10] :=  1;
               aVert[NextVIndexToUse+11] :=  0;
               aVert[NextVIndexToUse+12] :=  TextureId;                  // tex id
               aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d7, d8, d17)+Highlight;
+//              aVert[NextVIndexToUse+13] :=  1;
 
-              aVert[NextVIndexToUse+14] :=  0.5 + Cw.X;
+              aVert[NextVIndexToUse+14] :=  0.5 + Cw.X;                 // 5
               aVert[NextVIndexToUse+15] := -0.5 + Cw.Y;
               aVert[NextVIndexToUse+16] := -0.5 + Cw.Z;
               aVert[NextVIndexToUse+17] :=  1;
               aVert[NextVIndexToUse+18] :=  1;
               aVert[NextVIndexToUse+19] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d1, d2, d11)+Highlight;
+              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d4, d1, d10)+Highlight;
+//              aVert[NextVIndexToUse+20] :=  1;
 
-              aVert[NextVIndexToUse+21] :=  0.5 + Cw.X;
+              aVert[NextVIndexToUse+21] :=  0.5 + Cw.X;                 // 1
               aVert[NextVIndexToUse+22] := -0.5 + Cw.Y;
               aVert[NextVIndexToUse+23] :=  0.5 + Cw.Z;
               aVert[NextVIndexToUse+24] :=  0;
               aVert[NextVIndexToUse+25] :=  1;
               aVert[NextVIndexToUse+26] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d19, d20, d11)+Highlight;
+              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d22, d19, d10)+Highlight;
+//              aVert[NextVIndexToUse+27] :=  1;
 
               aInd[NextIIndexToUse]     :=  0 + I2*4+IndexOffset;       // Top right half
               aInd[NextIIndexToUse+1]   :=  1 + I2*4+IndexOffset;
@@ -773,9 +792,9 @@ begin
               inc(I2);                                                  // I2 is counter for 4-vertice groups stored. Starts from 0
             end;
 
-//          d16:
+//          d16: Top side
             if
-              (aChunk.MapData[I].Solid = false) and (aChunk.GetBlock(I, d16).Solid=true)
+              (aChunk.MapData[I].Solid = false) and (aChunk.GetBlock(I, d16).Solid = true)
             then
             begin
               aVert[NextVIndexToUse]    :=  -0.5 + Cw.X;                // x TOP 7
@@ -783,8 +802,9 @@ begin
               aVert[NextVIndexToUse+2]  :=  -0.5 + Cw.Z;                // z
               aVert[NextVIndexToUse+3]  :=  0;                          // texture x
               aVert[NextVIndexToUse+4]  :=  1;                          // texture y
-              aVert[NextVIndexToUse+5]  :=  TextureId;                   // tex id
-              aVert[NextVIndexToUse+6]  :=  aChunk.AmbientOcclusion2(I, d7, d6, d15)+Highlight;
+              aVert[NextVIndexToUse+5]  :=  TextureId;                  // tex id
+              aVert[NextVIndexToUse+6]  :=  aChunk.AmbientOcclusion2(I, d12, d3, d4)+Highlight;
+//              aVert[NextVIndexToUse+6] :=  1;
 
               aVert[NextVIndexToUse+7]  :=  0.5 + Cw.X;                 // 4
               aVert[NextVIndexToUse+8]  :=  0.5 + Cw.Y;
@@ -792,7 +812,8 @@ begin
               aVert[NextVIndexToUse+10] :=  1;
               aVert[NextVIndexToUse+11] :=  1;
               aVert[NextVIndexToUse+12] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d7, d8, d17)+Highlight;
+              aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d4, d5, d14)+Highlight;
+//              aVert[NextVIndexToUse+13] :=  1;
 
               aVert[NextVIndexToUse+14] :=  0.5 + Cw.X;                 // 0
               aVert[NextVIndexToUse+15] :=  0.5 + Cw.Y;
@@ -800,7 +821,8 @@ begin
               aVert[NextVIndexToUse+17] :=  1;
               aVert[NextVIndexToUse+18] :=  0;
               aVert[NextVIndexToUse+19] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d25, d26, d17)+Highlight;
+              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d22, d23, d14)+Highlight;
+//              aVert[NextVIndexToUse+20] :=  1;
 
               aVert[NextVIndexToUse+21] := -0.5 + Cw.X;                 // 3
               aVert[NextVIndexToUse+22] :=  0.5 + Cw.Y;
@@ -808,7 +830,8 @@ begin
               aVert[NextVIndexToUse+24] :=  0;
               aVert[NextVIndexToUse+25] :=  0;
               aVert[NextVIndexToUse+26] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d15, d24, d25)+Highlight;
+              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d12, d21, d22)+Highlight;
+//              aVert[NextVIndexToUse+27] :=  1;
 
               aInd[NextIIndexToUse]     :=  0 + I2*4+IndexOffset;       // Top right half
               aInd[NextIIndexToUse+1]   :=  1 + I2*4+IndexOffset;
@@ -833,7 +856,8 @@ begin
               aVert[NextVIndexToUse+3]  :=  1.0;                        // texture x
               aVert[NextVIndexToUse+4]  :=  1.0;                        // texture y
               aVert[NextVIndexToUse+5]  :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+6]  :=  aChunk.AmbientOcclusion2(I, d25, d26, d17)+Highlight;
+              aVert[NextVIndexToUse+6]  :=  aChunk.AmbientOcclusion2(I, d16, d17, d26)+Highlight;
+//              aVert[NextVIndexToUse+6] :=  1;
 
               aVert[NextVIndexToUse+7]  :=  0.5 + Cw.X;                 // 1
               aVert[NextVIndexToUse+8]  := -0.5 + Cw.Y;
@@ -841,7 +865,8 @@ begin
               aVert[NextVIndexToUse+10] :=  1;
               aVert[NextVIndexToUse+11] :=  0;
               aVert[NextVIndexToUse+12] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d19, d20, d11)+Highlight;
+              aVert[NextVIndexToUse+13] :=  aChunk.AmbientOcclusion2(I, d10, d11, d14)+Highlight;
+//              aVert[NextVIndexToUse+13] :=  1;
 
               aVert[NextVIndexToUse+14] := -0.5 + Cw.X;                 // 2
               aVert[NextVIndexToUse+15] := -0.5 + Cw.Y;
@@ -849,7 +874,8 @@ begin
               aVert[NextVIndexToUse+17] :=  0;
               aVert[NextVIndexToUse+18] :=  0;
               aVert[NextVIndexToUse+19] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d9, d18, d19)+Highlight;
+              aVert[NextVIndexToUse+20] :=  aChunk.AmbientOcclusion2(I, d10, d9, d12)+Highlight;
+//              aVert[NextVIndexToUse+20] :=  1;
 
               aVert[NextVIndexToUse+21] := -0.5 + Cw.X;                 // 3
               aVert[NextVIndexToUse+22] :=  0.5 + Cw.Y;                 //
@@ -857,7 +883,8 @@ begin
               aVert[NextVIndexToUse+24] :=  0;
               aVert[NextVIndexToUse+25] :=  1;
               aVert[NextVIndexToUse+26] :=  TextureId;                  // tex id
-              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d15, d24, d25)+Highlight;
+              aVert[NextVIndexToUse+27] :=  aChunk.AmbientOcclusion2(I, d16, d15, d24)+Highlight;
+//              aVert[NextVIndexToUse+27] :=  1;
 
               aInd[NextIIndexToUse]     :=  0 + I2*4+IndexOffset;       // Top right half
               aInd[NextIIndexToUse+1]   :=  1 + I2*4+IndexOffset;
@@ -870,6 +897,7 @@ begin
               Inc(NextIIndexToUse, 6);                                  // Next index to use for indices
               inc(I2);                                                  // I2 is counter for 4-vertice groups stored. Starts from 0
             end;
+        end;
 {$ENDREGION}
 
 
@@ -937,6 +965,18 @@ begin
 
 end;
 
+
+procedure TChunkManager.ChunkSave(const aChunk: TChunk);
+begin
+  // Nothing happens here
+end;
+
+
+function TChunkManager.ChunkLoad(const aID: String; var aChunk: TChunk): Boolean;
+begin
+  // Nothing happens here
+  Result := false;
+end;
 
 
 end.

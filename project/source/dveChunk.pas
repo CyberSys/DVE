@@ -41,6 +41,7 @@ type
 {$REGION 'TBlock'}
 TBlock = record
   Solid: Boolean;
+  Terrain: Byte;    // Texture to use;
   ScanData: Byte;   // This determines which faces need attention
                     // bit  direction   axis
                     // 0 =  d14         x+
@@ -100,7 +101,11 @@ TChunk = class
       read aSkipVertexArray write aSkipVertexArray;
 
     constructor Create(                                               //
-      const aSize: Cardinal; const Xworld, Yworld, Zworld: Int16);
+      const aSize: Cardinal;
+      const Xworld, Yworld, Zworld: Int16;
+      const LoadData: Boolean = false
+      );
+
     destructor Destroy; override;                                     //
     function IndexToBlockLocalCoords(const I: Integer): TVector3;     // Internal coordinates of a block
     function IndexToBlockWorldCoords(const I: Integer): TVector3;     // World coordinates of a block
@@ -161,7 +166,7 @@ end;
 {$REGION 'Chunk'}
 
 
-constructor TChunk.Create(const aSize: Cardinal; const Xworld: Int16; const Yworld: Int16; const Zworld: Int16);
+constructor TChunk.Create(const aSize: Cardinal; const Xworld: Int16; const Yworld: Int16; const Zworld: Int16; const LoadData: Boolean = false);
 var
   C: Cardinal;
 begin
@@ -175,7 +180,13 @@ begin
   aSizeArray2   := aSizeEdge2*aSizeEdge2*aSizeEdge2;  // Total array length
   SetLength(MapData, aSizeArray2);                    // Set block array SizeSide
 
-  OccupyChunkData;
+  if LoadData then
+    begin
+
+    end
+  else
+    OccupyChunkData;
+
 end;
 
 
@@ -214,53 +225,114 @@ end;
 
 
 function TChunk.GetBlock(const aIndex: Cardinal; const aDir: TDirection): TBlock;
+const
+  OFS16: array[d0..d26] of Integer = (
+    -343,-342,-341,-325,-324,-323,-307,-306,-305,-19,-18,-17,-1,0,1,17,18,19,305,306,307,323,324,325,341,342,343);
+
 begin
-  case aDir of
-    d0:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-aSizeEdge2-1];
-    d1:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-aSizeEdge2];
-    d2:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-aSizeEdge2+1];
-    d3:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-1];
-    d4:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)];
-    d5:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)+1];
-    d6:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)+aSizeEdge2-1];
-    d7:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)+aSizeEdge2];
-    d8:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)+aSizeEdge2+1];
 
-    d9:   Result := MapData[aIndex-aSizeEdge2-1];
-    d10:  Result := MapData[aIndex-aSizeEdge2];
-    d11:  Result := MapData[aIndex-aSizeEdge2+1];
-    d12:  Result := MapData[aIndex-1];
-    d13:  Result := MapData[aIndex];
-    d14:  Result := MapData[aIndex+1];
-    d15:  Result := MapData[aIndex+aSizeEdge2-1];
-    d16:  Result := MapData[aIndex+aSizeEdge2];
-    d17:  Result := MapData[aIndex+aSizeEdge2+1];
+  // Use precalculated offsets when available
+  // Well these make extremely little difference if calculated of lookup table
+{$REGION '  Lookup table compared to live calculations'}{
+This was calculated (lookuptable times in brackets)
+Benchmarks
 
-    d18:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)-aSizeEdge2-1];
-    d19:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)-aSizeEdge2];
-    d20:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)-aSizeEdge2+1];
-    d21:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)-1];
-    d22:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)];
-    d23:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)+1];
-    d24:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)+aSizeEdge2-1];
-    d25:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)+aSizeEdge2];
-    d26:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)+aSizeEdge2+1];
-  end;
+  Chunks cubed: 21
+  Chunk count: 9261
+  Chunk blocks cubed: 16
+  Blocks array(+2) size: 5832
+
+  Initialization etc: 361 ms
+
+  Occupy ListLoad: 6 ms
+    Per item: 0.000647878198898607 ms
+
+  Creating chunks, please wait
+  Create chunks one at a time: 14879 ms
+    Chunks processed: 9261
+    Per item: 1.60662995356873 ms
+    Chunks with solids created: 441
+    Per created: 33.7392290249433 ms
+
+  Save chunks disk bulk: 12 ms
+    Items: 441
+    Per item: 0.0272108843537415 ms
+
+  Save chunks file locations: 14 ms
+
+  Create vertices, Indices: 1043 ms           (1121 ms)
+    Items: 441
+    Per item: 2.36507936507937 ms
+    Slowest item: 4 ms
+
+  Render (all loaded): 108 ms                 (101 ms)
+    Items: 441
+    Per item: 0.244897959183673 ms
+
+  Render (all loaded): 2 ms                   (1 ms)
+    Items: 441
+    Per item: 0.00453514739229025 ms
+
+  Updated frustrum: 0 ms
+
+  Render (in frustrum): 1 ms
+    Items: 142
+    Per item: 0.00704225352112676 ms
+}
+{$ENDREGION}
+  if aSizeEdge = 16 then
+    Result := MapData[aIndex + OFS16[aDir]]
+
+
+  else
+    case aDir of
+      d0:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-aSizeEdge2-1];
+      d1:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-aSizeEdge2];
+      d2:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-aSizeEdge2+1];
+      d3:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)-1];
+      d4:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)];
+      d5:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)+1];
+      d6:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)+aSizeEdge2-1];
+      d7:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)+aSizeEdge2];
+      d8:   Result := MapData[aIndex-(aSizeEdge2*aSizeEdge2)+aSizeEdge2+1];
+
+      d9:   Result := MapData[aIndex-aSizeEdge2-1];
+      d10:  Result := MapData[aIndex-aSizeEdge2];
+      d11:  Result := MapData[aIndex-aSizeEdge2+1];
+      d12:  Result := MapData[aIndex-1];
+      d13:  Result := MapData[aIndex];
+      d14:  Result := MapData[aIndex+1];
+      d15:  Result := MapData[aIndex+aSizeEdge2-1];
+      d16:  Result := MapData[aIndex+aSizeEdge2];
+      d17:  Result := MapData[aIndex+aSizeEdge2+1];
+
+      d18:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)-aSizeEdge2-1];
+      d19:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)-aSizeEdge2];
+      d20:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)-aSizeEdge2+1];
+      d21:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)-1];
+      d22:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)];
+      d23:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)+1];
+      d24:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)+aSizeEdge2-1];
+      d25:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)+aSizeEdge2];
+      d26:  Result := MapData[aIndex+(aSizeEdge2*aSizeEdge2)+aSizeEdge2+1];
+    end;
+
 
 end;
 
 
 function TChunk.AmbientOcclusion2(const aIndex: Cardinal; const aD1, aD2, aD3: TDirection): Single;
 begin
+  // Full light level unless otherwise stated
   Result := 1;
 
   // Direction aD1 and aD3 are one axis diagonal (edges touching)
-  if GetBlock(aIndex, aD1).Solid then Result := Result - 0.4;
-  if GetBlock(aIndex, aD3).Solid then Result := Result - 0.4;
+  if GetBlock(aIndex, aD1).Solid then Result:= Result-0.4;
+  if GetBlock(aIndex, aD3).Solid then Result:= Result-0.4;
 
   // Direction aD2 is double diagonal            (corner cube)
   // At least one side and corner = half shadow
-  if (Result <1) or GetBlock(aIndex, aD2).Solid then Result := 0.6;
+  if (Result = 1) and GetBlock(aIndex, aD2).Solid then Result := 0.6;
 
 end;
 
@@ -292,13 +364,17 @@ begin
 
       C := IndexToBlockWorldCoords(I);
 
-      MapData[I].Solid := SNoise2D((C.X+1)/100, (C.Z+5)/100)*5 > (C.Y+5);
+      MapData[I].Solid := SNoise2D((C.X+1)/100, (C.Z+5)/100)*5 > (C.Y+5);   // Gound down
+//      MapData[I].Solid := SNoise2D((C.X+1)/100, (C.Z+5)/100)*5 < (C.Y-5);   // Floating continent
 
       // We like to know if there is both solid and non-solids in the chunk. If not, no point looping through it again elsewhere
       if MapData[I].Solid = true then
         AnySolids := (AnySolids or true)
       else
         AnyAir := AnyAir or true;
+
+
+      if MapData[I].Solid = true then MapData[I].Terrain := 0;
 
     end;
 
