@@ -39,7 +39,7 @@ TChunkManagerFile = class(TChunkManager)
   protected
 
   public
-    constructor Create(const bSizeEdge: Integer); dynamic;
+    constructor Create(const bSizeEdge: Integer);
     destructor Destroy; override;
 
     procedure ChunkSave(const aChunk: TChunk); override;
@@ -86,8 +86,13 @@ end;
 
 
 destructor TChunkManagerFile.Destroy;
+var
+  C: Int64;
 begin
   ChunkIndicesSave;
+
+//  for C in SavedChunkIndices.Values do C.Free;
+
   SavedChunkIndices.Free;
 
   Inherited Destroy;

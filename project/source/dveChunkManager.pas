@@ -38,6 +38,7 @@ type
     procedure Log(const msg: String);                       // Add log entry
     function GetVerticesCount: Cardinal;
     procedure MakeOutliers;                                 // Fill outliers array. Which indices are 'edge' blocks
+
   public
     Debug: Boolean;
     Feedback: TStringList;
@@ -51,8 +52,10 @@ type
     var ShaderVoxel: TShader;
     var VertexLayoutForVoxel: TVertexLayout;                // Vertex array layout for voxels
 
-    constructor Create(const bSizeEdge: Integer); dynamic;
-    Destructor Destroy; override;
+    constructor Create(const bSizeEdge: Integer);
+    destructor Destroy; override;
+
+//    property WorldSize;
 
     procedure ManageLists(const Camera: TCamera);           // Manages lists, run once per frame
     procedure UpdateListVicinity(const Camera: TCamera);    // Run once moved enough
@@ -64,7 +67,10 @@ type
 
     function UpdateChunkFrustrums(const aCamera: TCamera): TMatrix3;        // Updates chunks to know if they are in frustrum
 
-    procedure UpdateVertices(const Chunks: TDictionary<String, TChunk>);                            // Loop a list to create VAO if needed
+    { Loops through Dictionary and creates vertices for all chunks
+      Using TimeLimit breaks the loop at after 15 ms
+    }
+    procedure UpdateVertices(const Chunks: TDictionary<String, TChunk>; TimeLimit: Boolean = true); // Loop a list to create VAO if needed
     procedure ChunkVertices(aChunk: TChunk; var aVert: TArray<Single>; var aInd: TArray<GLUInt>);   // Creates Vertices and Indices for a Chunk
 
     procedure OpenGLStuff;                                  // I'm sure this shouldn't be part of ChunkManager
@@ -124,8 +130,6 @@ begin
   ListUnLoad := TDictionary<String, TChunk>.Create;
   ListVisibility := TDictionary<String, TChunk>.Create;
 
-
-
   aLastVicinityUpdateLocation := Vector3(0,0,99999999);
 
   MakeOutliers;
@@ -137,12 +141,23 @@ var
   C: TChunk;
 begin
 
-  // List vicinity will only hold IDs
-  for C in ListVicinity.Values do C.Free;
+  for C in ListVicinity.Values do C.Free;         // List vicinity should only hold string IDs
   for C in ListLoad.Values do C.Free;
   for C in ListLoaded.Values do C.Free;
   for C in ListUnLoad.Values do C.Free;
   for C in ListVisibility.Values do C.Free;
+
+  ListVicinity.Clear;
+  ListLoad.Clear;
+  ListLoaded.Clear;
+  ListUnLoad.Clear;
+  ListVisibility.Clear;
+
+//  ShowMessage('Destroy ChunkManager. ListVicinity count:'+ListVicinity.Count.ToString);
+//  ShowMessage('Destroy ChunkManager. ListLoad count:'+ListLoad.Count.ToString);
+//  ShowMessage('Destroy ChunkManager. ListLoaded count:'+ListLoaded.Count.ToString);
+//  ShowMessage('Destroy ChunkManager. ListUnLoad count:'+ListUnLoad.Count.ToString);
+//  ShowMessage('Destroy ChunkManager. ListVisibility count:'+ListVisibility.Count.ToString);
 
   ListVicinity.Free;
   ListLoad.Free;
@@ -153,7 +168,7 @@ begin
   FeedBack.Clear;
   FeedBack.Free;
 
-  ShaderVoxel.Free;
+  if assigned(ShaderVoxel) then ShaderVoxel.Free;
 
   Inherited Destroy;
 end;
@@ -173,7 +188,7 @@ end;
 
 procedure TChunkManager.Log(const msg: string);
 begin
-  if Debug  then
+  if Debug then
     Feedback.Add(msg);
 end;
 
@@ -351,9 +366,10 @@ begin
       exit;
     end;
 
-  // Create it from thin air
+  // Create the chunk from thin air
   C := CoordsFromID(aID);
   Result := TChunk.Create(aSizeEdge, round(C.X), round(C.Y), round(C.Z));
+
 end;
 
 
@@ -433,16 +449,16 @@ begin
     PTB :=        aCamera.Position/aSizeEdge + aCamera.Front + (aCamera.Up/(aCamera.ZoomX/aCamera.ZoomY));            // Upward
     PTB.Offset(   aCamera.Up*2);
     PTC :=        aCamera.Position/aSizeEdge + aCamera.Right;   // Right
-    PTC.Offset(   aCamera.Up*2);                               // All moved downwards
+    PTC.Offset(   aCamera.Up*2);                                // All moved downwards
 
 
   InFrustrumCount := 0;
   for Ch in ListLoaded.Values do
     begin
-      PLM.Init(PL1B-PL1A, PL1C-PL1A, Ch.PosWorld-PL1A);
-      PRM.Init(PRB-PRA, PRC-PRA, Ch.PosWorld-PRA);
-      PBM.Init(PBB-PBA, PBC-PBA, Ch.PosWorld-PBA);
-      PTM.Init(PTB-PTA, PTC-PTA, Ch.PosWorld-PTA);
+      PLM.Init(PL1B-PL1A, PL1C-PL1A, Ch.LocationF-PL1A);
+      PRM.Init(PRB-PRA, PRC-PRA, Ch.LocationF-PRA);
+      PBM.Init(PBB-PBA, PBC-PBA, Ch.LocationF-PBA);
+      PTM.Init(PTB-PTA, PTC-PTA, Ch.LocationF-PTA);
 
       if (PLM.Determinant > 0) and (PRM.Determinant < 0) and (PBM.Determinant < 0) and (PTM.Determinant > 0) then
 //      if (PLM.Determinant > 0) and (PRM.Determinant < 0) and (PBM.Determinant < 0)  then
@@ -462,7 +478,7 @@ begin
 end;
 
 
-procedure TChunkManager.UpdateVertices(const Chunks: TDictionary<String, TChunk>);
+procedure TChunkManager.UpdateVertices(const Chunks: TDictionary<String, TChunk>; TimeLimit: Boolean = true);
 var
   S3S: String;
   c13: TChunk;     // c13 Chunk to process, cN Neighbour
@@ -517,14 +533,13 @@ begin
           else
             c13.CreateVertices := false;
         end;
-      if S1.ElapsedMilliseconds > 15 then break;
+      if TimeLimit and (S1.ElapsedMilliseconds > 15) then break;
 
     end;
 
   Log('');
-  Log('TChunkManager.UpdateVertices      Total looped : ' + Total.ToString);
+  Log('TChunkManager.UpdateVertices     Created/Total : ' + Created.ToString+'/'+Total.ToString);
   Log('TChunkManager.UpdateVertices     Total time ms : ' + S1.ElapsedMilliseconds.ToString);
-  Log('TChunkManager.UpdateVertices           Created : ' + Created.ToString);
   Log('TChunkManager.UpdateVertices   Created time ms : ' + S2.ElapsedMilliseconds.ToString);
   if S3.ElapsedMilliseconds > 0 then
   Log('TChunkManager.UpdateVertices   Uploaded VAO ms : ' + S3.ElapsedMilliseconds.ToString);

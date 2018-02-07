@@ -14,7 +14,7 @@ uses
   Neslib.Stb.RectPack in 'External\Neslib-Stb\Neslib.Stb.RectPack.pas',
   Neslib.FastMath in 'External\FastMath\Neslib.FastMath.pas',
   dveChunkManagerFile in 'source\dveChunkManagerFile.pas',
-  dveComponentStreamer in 'source\dveComponentStreamer.pas';
+  dveWorld in 'source\dveWorld.pas';
 
 {$R *.res}
 

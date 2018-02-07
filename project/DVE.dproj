@@ -153,7 +153,7 @@
         <DCCReference Include="External\Neslib-Stb\Neslib.Stb.RectPack.pas"/>
         <DCCReference Include="External\FastMath\Neslib.FastMath.pas"/>
         <DCCReference Include="source\dveChunkManagerFile.pas"/>
-        <DCCReference Include="source\dveComponentStreamer.pas"/>
+        <DCCReference Include="source\dveWorld.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

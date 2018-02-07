@@ -5,6 +5,7 @@ interface
 uses
   // Project
   dveChunk,
+  dveChunkManager,
   dveChunkManagerFile,
   dveOpenGLHandler,
   dglOpenGL,
@@ -74,7 +75,8 @@ var
   FPSSum: Single;
   Blink: Integer = 0;
   OldBlink: Integer = -1;
-  CM: TChunkManagerFile;
+  CM: TChunkManager;
+  CMF: TChunkManagerFile;
   LastFrameTime: double;
   CM_Counter: Cardinal = 0;
   RandSeed: Integer = 1;
@@ -111,66 +113,69 @@ const
   Step=10;
   ChunkSize=16;
 var
-  q: Double;
+//  q: Double;
   x,y,z,i: Integer;
   SID: String;
   C: TChunk;
   SW, SW2: TStopWatch;
   At: TArray<Single>;
   It: TArray<GLUInt>;
-  mini, maxi: integer;
-  Done: Boolean;
+  maxi: integer;
+//  Done: Boolean;
   S: String;
+
 begin
   Memo1.Lines.Clear;
   Memo1.Lines.Add('Benchmarks');
   I := (Step*2+1)*(Step*2+1)*(Step*2+1);
+
   Memo1.Lines.Add('');
-  Memo1.Lines.Add('  Chunks cubed: ' + Integer(Step*2+1).ToString);
-  Memo1.Lines.Add('  Chunk count: ' + I.ToString);
-  Memo1.Lines.Add('  Chunk blocks cubed: ' + ChunkSize.ToString);
-  Memo1.Lines.Add('  Blocks array(+2) size: ' + ((ChunkSize+2)*(ChunkSize+2)*(ChunkSize+2)).ToString);
+  Memo1.Lines.Add('           Chunks cubed : ' + Integer(Step*2+1).ToString);
+  Memo1.Lines.Add('            Chunk count : ' + I.ToString);
+  Memo1.Lines.Add('     Chunk blocks cubed : ' + ChunkSize.ToString);
+  Memo1.Lines.Add('  Blocks array(+2) size : ' + ((ChunkSize+2)*(ChunkSize+2)*(ChunkSize+2)).ToString);
 
   SW.Create;
   SW.Reset;
   SW.Start;
 
-    // Change seed
-    inc(RandSeed);
+  // Change seed
+  inc(RandSeed);
 //    RandSeed:=0;
-    dveSimplexNoise1234.CreateSeed();
 
-    // Make sure we do not try to render anything
-    Application.OnIdle := nil;
+  dveSimplexNoise1234.CreateSeed();
 
-    // Clean up
-    if assigned(OGLH) then FreeAndNil(OGLH);
-    if assigned(CM) then FreeAndNil(CM);
-    DeleteFile (ExtractFilePath(Application.ExeName)+'\Save\ChunkIndices.bin');
-    DeleteFile (ExtractFilePath(Application.ExeName)+'\Save\ChunkData.bin');
+  // Make sure we do not try to render anything
+  Application.OnIdle := nil;
 
-    // Initialize OGLH
-    OGLH := TOpenGLHandler.Create;
-    OGLH.SetUpRenderingContext(PanelDrawSurface);
-    OGLH.ShaderVoxel    := TShader.Create('Resources\Shaders\18AO.vert', 'Resources\Shaders\18AO.frag');
-    OGLH.UniformModel   := OGLH.ShaderVoxel.GetUniformLocation('Model');
-    OGLH.UniformView    := OGLH.ShaderVoxel.GetUniformLocation('View');
-    OGLH.UniformProjection := OGLH.ShaderVoxel.GetUniformLocation('Projection');
-    OGLH.UniformTextureArray0 := OGLH.ShaderVoxel.GetUniformLocation('TextureArray0');
-    S :=  'Resources\Textures\Blocks\grass.png'+#13+
-          'Resources\Textures\Blocks\grass_side.png'+#13+
-         'Resources\Textures\Blocks\dirt.png'+#13+
-         'Resources\Textures\Blocks\farmland_dry.png'+#13+
-         'Resources\Textures\Blocks\brick.png';
-    OGLH.LoadTextureArray(OGLH.TextureArray0, S);
-    OGLH.Camera.Position := Vector3(0,0,0);
+  // Clean up
+  if assigned(OGLH) then FreeAndNil(OGLH);
+  if assigned(CMF) then FreeAndNil(CMF);
+  DeleteFile (ExtractFilePath(Application.ExeName)+'\Save\ChunkIndices.bin');
+  DeleteFile (ExtractFilePath(Application.ExeName)+'\Save\ChunkData.bin');
 
-    // Create chunk manager
-    CM := TChunkManagerFile.Create(ChunkSize);
-    CM.DistanceView := 0;
-    CM.DistanceLoad := Step+1;
-    CM.WorldSeed    := 'Jaajaa';
-    CM.OpenGLStuff;
+  // Initialize OGLH
+  OGLH := TOpenGLHandler.Create;
+  OGLH.SetUpRenderingContext(PanelDrawSurface);
+  OGLH.ShaderVoxel          := TShader.Create('Resources\Shaders\18AO.vert', 'Resources\Shaders\18AO.frag');
+  OGLH.UniformModel         := OGLH.ShaderVoxel.GetUniformLocation('Model');
+  OGLH.UniformView          := OGLH.ShaderVoxel.GetUniformLocation('View');
+  OGLH.UniformProjection    := OGLH.ShaderVoxel.GetUniformLocation('Projection');
+  OGLH.UniformTextureArray0 := OGLH.ShaderVoxel.GetUniformLocation('TextureArray0');
+  S := 'Resources\Textures\Blocks\grass.png'+#13+
+       'Resources\Textures\Blocks\grass_side.png'+#13+
+       'Resources\Textures\Blocks\dirt.png'+#13+
+       'Resources\Textures\Blocks\farmland_dry.png'+#13+
+       'Resources\Textures\Blocks\brick.png';
+  OGLH.LoadTextureArray(OGLH.TextureArray0, S);
+  OGLH.Camera.Position := Vector3(0,0,0);
+
+  // Create chunk manager
+  CMF := TChunkManagerFile.Create(ChunkSize);
+  CMF.DistanceView := 0;
+  CMF.DistanceLoad := Step+1;
+  CMF.WorldSeed    := 'Jaajaa';
+  CMF.OpenGLStuff;
 
   SW.Stop;
   Memo1.Lines.Add('');
@@ -179,14 +184,16 @@ begin
 
   SW.Reset;
   SW.Start;
+
     // Loop chunks and add to be created
     for X := -Step to Step do
       for Y := -Step to Step do
         for Z := -Step to Step do
           begin
             SID := ChunkID(X,Y,Z);
-            CM.ListLoad.Add(SID, nil);
+            CMF.ListLoad.Add(SID, nil);
           end;
+
   SW.Stop;
   I := (Step*2+1)*(Step*2+1)*(Step*2+1);
   Memo1.Lines.Add('');
@@ -199,22 +206,22 @@ begin
   Memo1.Lines.Add('  Creating chunks, please wait');
   SW.Reset;
   SW.Start;
-    I := CM.ListLoad.Count;
-    CM.ListLoadChunksProcess(I+10);
+    I := CMF.ListLoad.Count;
+    CMF.ListLoadChunksProcess(I+10);
   SW.Stop;
   Memo1.Lines.Add('  Create chunks one at a time: ' + SW.ElapsedMilliseconds.ToString + ' ms');
   Memo1.Lines.Add('    Chunks processed: ' + I.ToString);
   Memo1.Lines.Add('    Per item: ' + Double(SW.ElapsedMilliseconds/I).ToString + ' ms');
-  Memo1.Lines.Add('    Chunks with solids created: ' + CM.ListLoaded.Count.ToString);
-  Memo1.Lines.Add('    Per created: ' + Double(SW.ElapsedMilliseconds/CM.ListLoaded.Count).ToString + ' ms');
+  Memo1.Lines.Add('    Chunks with solids created: ' + CMF.ListLoaded.Count.ToString);
+  Memo1.Lines.Add('    Per created: ' + Double(SW.ElapsedMilliseconds/CMF.ListLoaded.Count).ToString + ' ms');
 
   // Save one at a time, Super slow
 //    SW.Reset;
 //    SW.Start;
-//      I:= CM.ListLoaded.Values.Count;
-//      for C in CM.ListLoaded.Values do
+//      I:= CMF.ListLoaded.Values.Count;
+//      for C in CMF.ListLoaded.Values do
 //        begin
-//          CM.ChunkSave(C);
+//          CMF.ChunkSave(C);
 //        end;
 //    SW.Stop;
 //    Memo1.Lines.Add('');
@@ -225,13 +232,13 @@ begin
   // Bulk save
     DeleteFile (ExtractFilePath(Application.ExeName)+'\Save\ChunkIndices.bin');
     DeleteFile (ExtractFilePath(Application.ExeName)+'\Save\ChunkData.bin');
-    CM.ChunkIndicesLoad;  // This clear saved list if there is no file
-    CM.CreateFiles;
+    CMF.ChunkIndicesLoad;  // This clear saved list if there is no file
+    CMF.CreateFiles;
 
     SW.Reset;
     SW.Start;
-      I:= CM.ListLoaded.Values.Count;
-      CM.ChunkListSave(CM.ListLoaded);
+      I:= CMF.ListLoaded.Values.Count;
+      CMF.ChunkListSave(CMF.ListLoaded);
     SW.Stop;
     Memo1.Lines.Add('');
     Memo1.Lines.Add('  Save chunks disk bulk: ' + SW.ElapsedMilliseconds.ToString + ' ms');
@@ -242,7 +249,7 @@ begin
   // File locations save
     SW.Reset;
     SW.Start;
-      CM.ChunkIndicesSave;
+      CMF.ChunkIndicesSave;
     SW.Stop;
     Memo1.Lines.Add('');
     Memo1.Lines.Add('  Save chunks file locations: ' + SW.ElapsedMilliseconds.ToString + ' ms');
@@ -252,15 +259,15 @@ begin
     maxi := 0;
     SW.Reset;
     SW.Start;
-      I:= CM.ListLoaded.Values.Count;
-      for C in CM.ListLoaded.Values do
+      I:= CMF.ListLoaded.Values.Count;
+      for C in CMF.ListLoaded.Values do
         begin
           SW2.Create;
           SW2.Reset;
           SW2.Start;
-          CM.ChunkVertices(C, At, It);
+          CMF.ChunkVertices(C, At, It);
           C.aVertexArray := TVertexArray.Create(
-                                    CM.VertexLayoutForVoxel,
+                                    CMF.VertexLayoutForVoxel,
                                     At,
                                     SizeOf(Single)*Length(At),
                                     It[0],
@@ -280,9 +287,9 @@ begin
   // Render
     SW.Reset;
     SW.Start;
-      I:= CM.ListLoaded.Values.Count;
+      I:= CMF.ListLoaded.Values.Count;
       OGLH.Render1;
-      for C in CM.ListLoaded.Values do
+      for C in CMF.ListLoaded.Values do
         begin
           if (assigned(C.aVertexArray)) then C.aVertexArray.Render;
         end;
@@ -296,9 +303,9 @@ begin
   // Render
     SW.Reset;
     SW.Start;
-      I:= CM.ListLoaded.Values.Count;
+      I:= CMF.ListLoaded.Values.Count;
       OGLH.Render1;
-      for C in CM.ListLoaded.Values do
+      for C in CMF.ListLoaded.Values do
         begin
           if (assigned(C.aVertexArray)) then C.aVertexArray.Render;
         end;
@@ -312,7 +319,7 @@ begin
   // Update Frustrum
     SW.Reset;
     SW.Start;
-      CM.UpdateChunkFrustrums(OGLH.Camera);
+      CMF.UpdateChunkFrustrums(OGLH.Camera);
     SW.Stop;
     Memo1.Lines.Add('');
     Memo1.Lines.Add('  Updated frustrum: ' + SW.ElapsedMilliseconds.ToString + ' ms');
@@ -322,7 +329,7 @@ begin
     SW.Start;
       I:=0;
       OGLH.Render1;
-      for C in CM.ListLoaded.Values do
+      for C in CMF.ListLoaded.Values do
         begin
           if C.InFrustrum and (assigned(C.aVertexArray)) then
             begin
@@ -339,7 +346,12 @@ begin
 
 
   // Start engine tick
-    Application.OnIdle := IdleHandler2;
+//    Application.OnIdle := IdleHandler2;
+
+
+  // Clean up
+  if assigned(OGLH) then FreeAndNil(OGLH);
+  if assigned(CMF) then FreeAndNil(CMF);
 
 end;
 
@@ -461,7 +473,7 @@ end;
 
 procedure TFormTest.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  CM.Free;
+  if assigned(CM) then CM.Free;
   if assigned(OGLH) then OGLH.Free;
 
 //  if Assigned(Chunk) then Chunk.Free;
@@ -584,6 +596,7 @@ begin
 
   // Not initialized, go away
     if (not assigned(OGLH)) and (not CheckBoxRender.Checked) then exit;
+    if (not assigned(CM)) then exit;
 
   // Set debug
     CM.Debug := CheckBoxDebug.Checked;
@@ -651,12 +664,17 @@ end;
 // Prepare OpenGL
 procedure TFormTest.Setup2;
 var
-  a: boolean;
+//  a: boolean;
   S: String;
-  I: Integer;
+//  I: Integer;
+  W: TWorld;
+  Loc: TLoc;
+  C: TChunk;
+  SW: TStopWatch;
 begin
   if assigned(OGLH) then OGLH.Free;
   if assigned(CM) then CM.Free;
+  W := TWorld.Create;
 
   // Initialize OGLH
     OGLH := TOpenGLHandler.Create;
@@ -664,23 +682,32 @@ begin
     glInfoToDisk;
 
   // Create chunk list
-    CM := TChunkManagerFile.Create(16);
+//    CM := TChunkManagerFile.Create(16);
+    CM := TChunkManager.Create(16);
     CM.OpenGLStuff;
+    W.fChunkEdgeSize := 16;
 
     CM.DistanceView := 0;
-    CM.DistanceLoad := 8;
+    CM.DistanceLoad := 20;
     CM.WorldSeed    := 'Jaajaa';
-//    CM.SizeEdge     := 16;        // Default 11;
-//    CM.MakeOutliers;  Moved to Create
+    Loc.X := 0;
+    Loc.Y := 10;
+    Loc.Z := 0;
+    SW.Create;
+    SW.Reset;
+    SW.Start;
+    W.CreateSurfaceRecursively(Loc, Loc, CM.DistanceLoad, CM.ListLoaded);
+    Memo1.Lines.Add('Create chunks: '+ SW.ElapsedMilliseconds.ToString + ' ms');
+    W.Free;
 
   // Camera location
 //  CM.UpdateListVicinity(OGLH.Camera);           // To list initial chunks
 
   // Create voxel related shaders and link the uniforms
-  OGLH.ShaderVoxel    := TShader.Create('Resources\Shaders\18AO.vert', 'Resources\Shaders\18AO.frag');
-  OGLH.UniformModel   := OGLH.ShaderVoxel.GetUniformLocation('Model');
-  OGLH.UniformView    := OGLH.ShaderVoxel.GetUniformLocation('View');
-  OGLH.UniformProjection := OGLH.ShaderVoxel.GetUniformLocation('Projection');
+  OGLH.ShaderVoxel        := TShader.Create('Resources\Shaders\18AO.vert', 'Resources\Shaders\18AO.frag');
+  OGLH.UniformModel       := OGLH.ShaderVoxel.GetUniformLocation('Model');
+  OGLH.UniformView        := OGLH.ShaderVoxel.GetUniformLocation('View');
+  OGLH.UniformProjection  := OGLH.ShaderVoxel.GetUniformLocation('Projection');
 
   // Create the array uniform for voxel textures
   OGLH.UniformTextureArray0 := OGLH.ShaderVoxel.GetUniformLocation('TextureArray0');
@@ -691,20 +718,29 @@ begin
         'Resources\Textures\Blocks\brick.png';
   OGLH.LoadTextureArray(OGLH.TextureArray0, S);
 
-  // Create vertex data related things
-//  SetupVertex2;
-
-  OGLH.Camera.Position := Vector3(0,0,0);
-  CM.UpdateChunkFrustrums(OGLH.Camera);
-//  CM.UpdateChunkFrustrums(Plane);
-
-  for I := 0 to 100 do
-    IdleHandler2(nil, a);
-
+  // Prepare camera
+  OGLH.Camera.Position := Vector3(Loc.X,Loc.Y,Loc.Z);
+  // Update whats in frustrum
 //  CM.UpdateChunkFrustrums(OGLH.Camera);
 
-//  for I := 0 to 100 do
-//    IdleHandler2(nil, a);
+  // Create all vertices
+  CM.Debug := true;
+  CM.UpdateVertices(CM.ListLoaded, false);
+  Memo1.Text := Memo1.Text + CM.Feedback.Text;
+//  ShowMessage('Pause');
+
+  // Start rendering
+    OGLH.Render1;
+
+    SW.Reset;
+    SW.Start;
+    for C in CM.ListLoaded.Values do
+      if assigned(C.aVertexArray) then C.aVertexArray.Render;
+  // Show rendered stuff
+    OGLH.SwapBuffer;
+
+    Memo1.Lines.Add('Upload VAOs: '+ SW.ElapsedMilliseconds.ToString + ' ms');
+
 
   // Start engine tick
     Application.OnIdle := IdleHandler2;
@@ -774,8 +810,8 @@ end;
 
 
 Initialization
-  Blink := 0;
-  OldBlink := -1;
+//  Blink := 0;
+//  OldBlink := -1;
 
 end.
 

@@ -72,9 +72,9 @@ object FormTest: TFormTest
       object ButtonChunkManager: TButton
         Left = 136
         Top = 47
-        Width = 145
+        Width = 361
         Height = 25
-        Caption = 'Create on the fly'
+        Caption = 'Benchmark '#39'create on the fly recursively'#39
         TabOrder = 1
         OnClick = ButtonChunkManagerClick
       end
@@ -99,9 +99,9 @@ object FormTest: TFormTest
       object ButtonCreateBenchmark: TButton
         Left = 136
         Top = 16
-        Width = 145
+        Width = 361
         Height = 25
-        Caption = 'Create benchmark'
+        Caption = 'Benchmark creation old style'
         TabOrder = 4
         OnClick = ButtonCreateBenchmarkClick
       end

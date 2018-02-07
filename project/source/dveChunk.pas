@@ -17,6 +17,20 @@ uses
 type
 
 
+TLoc = record
+  X: Int32;
+  Y: Int32;
+  Z: Int32;
+end;
+
+
+TChunkInfo = record
+  AnySolid: Boolean;
+  AnyVoid: Boolean;
+  Changed: Boolean;
+end;
+
+
 {$REGION 'Directions'}
   // 27 main directions
   // Imagine 3x3x cube with OpenGL righthanded coordinates. X+ Right, Y+ Up, Z+ Behind you.
@@ -68,30 +82,33 @@ end;
 TChunk = class
   private
     aID: String;                                                      // Sring ID for location
-    aXWorld: Int16;                                                   // World coordinates of chunk
-    aYWorld: Int16;                                                   // World coordinates of chunk
-    aZWorld: Int16;                                                   // World coordinates of chunk
+    aXWorld: Int16;                                                   // Legacy World coordinates of chunk
+    aYWorld: Int16;                                                   // Legacy World coordinates of chunk
+    aZWorld: Int16;                                                   // Legacy World coordinates of chunk
+    fLocationI: TLoc;                                                 // World coordinates of chunk
     aSizeEdge: Cardinal;                                              // Chunk side length
     aSizeEdge2: Cardinal;                                             // Chunk side length with hidden data. One row/column on each side of cube
     aSizeArray2: Cardinal;                                            // Chunk array length
     aUpdateVertices: Boolean;                                         // Needs an update
     aInFrustrum: Boolean;                                             // Chunk is in Frustrum
 
-    function GetPosWorld: TVector3;                                   // Get world position in Chunk-count
+    function GetLocationF: TVector3;                                  // Get world position in Chunk-count
     procedure OccupyChunkData;                                        // Fill MapData array
     function GetUpdateVertices: Boolean;                              // Getter
     procedure SetUpdateVertices(const Value: Boolean);                // Setter
 
   public
+    Info: TChunkInfo;
     aSkipVertexArray: Boolean;
     MapData: array of TBlock;
     aVertexArray: TVertexArray;                                       // Vertex data for this chunk
 
     property IDString: String read aID;                               // ID String to hash
-    property XWorld: Int16 read aXWorld;                              // Chunk world coordinates
-    property YWorld: Int16 read aYWorld;                              // Chunk world coordinates
-    property ZWorld: Int16 read aZWorld;                              // Chunk world coordinates
-    property PosWorld: TVector3 read GetPosWorld;                     //
+//    property XWorld: Int16 read aXWorld;                              // Legacy Chunk world coordinates
+//    property YWorld: Int16 read aYWorld;                              // Legacy Chunk world coordinates
+//    property ZWorld: Int16 read aZWorld;                              // Legacy Chunk world coordinates
+    property LocationI: TLoc read fLocationI;                         // Chunk world coordinates, Integer vector
+    property LocationF: TVector3 read GetLocationF;                   // Chunk world coordinates, Float vector
     property CreateVertices: Boolean                                  //
       read GetUpdateVertices write SetUpdateVertices;
     property SizeEdge: Cardinal read aSizeEdge;                       //
@@ -100,11 +117,18 @@ TChunk = class
     property SkipVertexArray: Boolean                                 //
       read aSkipVertexArray write aSkipVertexArray;
 
-    constructor Create(                                               //
+    constructor Create(                                               // Legacy
       const aSize: Cardinal;
       const Xworld, Yworld, Zworld: Int16;
       const LoadData: Boolean = false
-      );
+      ); overload;
+
+    constructor Create(                                               // Proper 2018-01-17
+      const aSize: Cardinal;
+      const aLoc: TLoc;
+      const LoadData: Boolean = false
+      ); overload;
+
 
     destructor Destroy; override;                                     //
     function IndexToBlockLocalCoords(const I: Integer): TVector3;     // Internal coordinates of a block
@@ -122,6 +146,7 @@ end;
 
 // Utility functions
 function CoordsToIndex(const iX,iY,iZ: Integer; const aLength: Integer): Integer;
+
 
 function ChunkID(const aX, aY, aZ: Single):String;
 
@@ -163,7 +188,7 @@ end;
 
 
 
-{$REGION 'Chunk'}
+{$REGION 'TChunk'}
 
 
 constructor TChunk.Create(const aSize: Cardinal; const Xworld: Int16; const Yworld: Int16; const Zworld: Int16; const LoadData: Boolean = false);
@@ -174,6 +199,29 @@ begin
   aXWorld := Xworld;
   aYWorld := Yworld;
   aZWorld := Zworld;
+
+  aSizeEdge     := aSize;                             // Chunk edge
+  aSizeEdge2    := aSize+2;                           // Chunk edge with extra data. 2 rows, columns one on each side of cube
+  aSizeArray2   := aSizeEdge2*aSizeEdge2*aSizeEdge2;  // Total array length
+  SetLength(MapData, aSizeArray2);                    // Set block array SizeSide
+
+  if LoadData then
+    begin
+
+    end
+  else
+    OccupyChunkData;
+
+end;
+
+
+constructor TChunk.Create(const aSize: Cardinal; const aLoc: TLoc; const LoadData: Boolean);
+begin
+  aID := Format('%d.%d.%d', [aLoc.X,aLoc.Y,aLoc.Z]);
+  aXWorld := aLoc.X;
+  aYWorld := aLoc.Y;
+  aZWorld := aLoc.Z;
+  fLocationI := aLoc;
 
   aSizeEdge     := aSize;                             // Chunk edge
   aSizeEdge2    := aSize+2;                           // Chunk edge with extra data. 2 rows, columns one on each side of cube
@@ -321,6 +369,14 @@ Benchmarks
 end;
 
 
+function TChunk.GetLocationF: TVector3;
+begin
+  Result.X := fLocationI.X;
+  Result.Y := fLocationI.Y;
+  Result.Z := fLocationI.Z;
+end;
+
+
 function TChunk.AmbientOcclusion2(const aIndex: Cardinal; const aD1, aD2, aD3: TDirection): Single;
 begin
   // Full light level unless otherwise stated
@@ -337,17 +393,6 @@ begin
 end;
 
 
-// Private
-
-
-function TChunk.GetPosWorld: TVector3;
-begin
-  Result.X := aXWorld;
-  Result.Y := aYWorld;
-  Result.Z := aZWorld;
-end;
-
-
 procedure TChunk.OccupyChunkData;
 var
   I: Integer;
@@ -358,20 +403,26 @@ begin
   AnySolids := false;
   AnyAir := false;
 
+//  ShowMessage('Create: ' + aXWorld.ToString+'/'+aYWorld.ToString+'/'+aZWorld.ToString);
+
   for I := 0 to aSizeArray2-1 do
     begin
       MapData[I].Solid := false;
 
       C := IndexToBlockWorldCoords(I);
 
+//      MapData[I].Solid := C.Y < 0;
       MapData[I].Solid := SNoise2D((C.X+1)/100, (C.Z+5)/100)*5 > (C.Y+5);   // Gound down
 //      MapData[I].Solid := SNoise2D((C.X+1)/100, (C.Z+5)/100)*5 < (C.Y-5);   // Floating continent
 
       // We like to know if there is both solid and non-solids in the chunk. If not, no point looping through it again elsewhere
       if MapData[I].Solid = true then
-        AnySolids := (AnySolids or true)
+        begin
+          AnySolids := (AnySolids or true);
+//          ShowMessage('S:' + C.X.ToString+'/'+C.Y.ToString+'/'+C.Z.ToString);
+        end
       else
-        AnyAir := AnyAir or true;
+        AnyAir := (AnyAir or true);
 
 
       if MapData[I].Solid = true then MapData[I].Terrain := 0;
@@ -379,6 +430,9 @@ begin
     end;
 
   CreateVertices := AnySolids and AnyAir;
+
+  Info.AnySolid := AnySolids;
+  Info.AnyVoid  := AnyAir;
 
 end;
 
